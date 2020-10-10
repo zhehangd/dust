@@ -52,18 +52,19 @@ class Core(object):
         self.map_data = map_data
         self.map_data_flat = map_data_flat
         
-        self.wall_coords = wall_coords
+        #self.wall_coords = wall_coords
         self.player_coords = player_coords
         self.food_coords = food_coords
         
-    def step(actions):
+    def step(self, actions):
         global _MOVE_LUT, _TYPE_WALL
-        move_coords = _MOVE_LUT[actions]
-        move_success = np.equal(self.map_data_flat[move_coords], 0)
-        player_coords[move_success] = move_coords[move_success]
+        move_coords = self.player_coords + _MOVE_LUT[actions]
+        move_success = np.equal(self.map_data_flat['type'][move_coords], 0)
+        print(move_success, actions, move_coords)
+        self.player_coords[move_success] = move_coords[move_success]
         
         isect, _, food_idxs = np.intersect1d(
-            player_coords, self.food_coords, return_indices=True)
+            self.player_coords, self.food_coords, return_indices=True)
         num_obtained_foods = len(isect)
         self.food_coords = np.delete(self.food_coords, food_idxs)
     

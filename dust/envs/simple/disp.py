@@ -22,11 +22,16 @@ _DISP_WORLD_SIZE = 100
 _DISP_WORLD_WIDTH = _DISP_WORLD_SIZE * _DISP_WIN_WIDTH // _DISP_WIN_HEIGHT
 _DISP_WORLD_HEIGHT = _DISP_WORLD_SIZE
 
+_COLOR_GROUND = (0.75, 0.93, 0.73)
+_COLOR_WALL = (0.2, 0.2, 0.2)
+_COLOR_FOOD = (0.9,0.1,0.1)
+_COLOR_PLAYER = (0.1,0.9,0.1)
 # We use (sx, sy) to represents a point in the screen.
 # The origin is at the bottom-left of the screen.
 
 def _make_polygon(tl, br):
     return [tl, (br[0], tl[1]), br, (tl[0], br[1])]
+
 
 class Disp(object):
     
@@ -55,22 +60,37 @@ class Disp(object):
         core = self.core
         w, h = core.map_data.shape
         
+        global _COLOR_GROUND, _COLOR_WALL, _COLOR_FOOD
+        
         ground_tl, _ = self._square_coords(0, 0)
         ground_br, _ = self._square_coords(w, h)
-        ground_color = (0.75, 0.93, 0.73)
-        self.viewer.draw_polygon(_make_polygon(ground_tl, ground_br), color=ground_color)
+        self.viewer.draw_polygon(_make_polygon(ground_tl, ground_br), color=_COLOR_GROUND)
         
-        for ci in core.wall_coords:
-            yi = ci % h
-            xi = ci // h
-            color = (0.2, 0.2, 0.2)
+        wall_xi_list, wall_yi_list = np.where(core.map_data['type'] == 1)
+        for xi, yi in zip(wall_xi_list, wall_yi_list):
             tl, br = self._square_coords(xi, yi)
-            self.viewer.draw_polygon(_make_polygon(tl, br), color=color)
+            self.viewer.draw_polygon(_make_polygon(tl, br), color=_COLOR_WALL)
         
-        #t = rendering.Transform(translation=self._cal_cell_center_(*self.core.goal_pos))
+        for food_i in core.food_coords:
+            xi = food_i // h
+            yi = food_i % h
+            t = rendering.Transform(translation=self._square_center_(xi, yi))
+            radius = self.square_size / 8.0
+            res = max(8, round(radius * 8))
+            self.viewer.draw_circle(radius, res, color=_COLOR_FOOD).add_attr(t)
+        
+        for player_i in core.player_coords:
+            xi = player_i // h
+            yi = player_i % h
+            t = rendering.Transform(translation=self._square_center_(xi, yi))
+            radius = self.square_size / 5.0
+            res = max(8, round(radius * 8))
+            self.viewer.draw_circle(radius, res, color=_COLOR_PLAYER).add_attr(t)
+        
+        #t = rendering.Transform(translation=self._square_center_(*self.core.goal_pos))
         #self.viewer.draw_circle(1, 8, color=(0.9,0.1,0.1)).add_attr(t)
         
-        #t = rendering.Transform(translation=self._cal_cell_center_(*self.core.player_pos))
+        #t = rendering.Transform(translation=self._square_center_(*self.core.player_pos))
         #self.viewer.draw_circle(1, 8, color=(0.2,0.8,0.2)).add_attr(t)
         
         if _RENDER_SLEEP_TIME > 0:
@@ -96,7 +116,7 @@ class Disp(object):
         br = (sx + self.square_size, sy - self.square_size)
         return tl, br
     
-    def _cal_cell_center_(self, xi, yi):
+    def _square_center_(self, xi, yi):
         """ Calculates the center coordinates of a cell
         """
         tl, br = self._square_coords(xi, yi)
