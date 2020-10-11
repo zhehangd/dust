@@ -1,17 +1,8 @@
 import numpy as np
 import time
 
-import dust.envs
+import dust.sim_system
 
-core = dust.envs.simple.Core()
-disp = dust.envs.simple.Disp(core)
-disp.render()
-print(core.map_data)
-for i in range(1000):
-    
-    num_players = len(core.player_coords)
-    actions = np.random.randint(0, 4, num_players)
-    core.step(actions)
-    
-    disp.render()
-    time.sleep(0.1)
+if __name__ == '__main__':
+    s = dust.sim_system.SimSystem()
+    s.play()

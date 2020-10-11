@@ -13,6 +13,8 @@ _MOVE_LUT = np.array([_MAP_HEIGHT, 1, -_MAP_HEIGHT, -1])
 
 _TYPE_WALL = 1
 
+_REWARD_FOOD = 50
+
 # Coordinte system:
 # The *coordinates* of a position is represented by (xi, yi), where xi and
 # yi are both integers. The x-axis points toward right, and the y-axis points
@@ -24,6 +26,13 @@ _TYPE_WALL = 1
 
 
 class Core(object):
+    
+    """
+    
+    Attributes:
+    
+    
+    """
     
     def __init__(self):
         self.reset()
@@ -55,9 +64,19 @@ class Core(object):
         #self.wall_coords = wall_coords
         self.player_coords = player_coords
         self.food_coords = food_coords
+        self.step_reward = 0
+        self.total_reward = 0
         
-    def step(self, actions):
+        # Next action for each player
+        # Filled by agents between steps
+        self._reset_action()
+    
+    def _reset_action(self):
+        self.next_action = np.zeros(_NUM_PLAYERS, dtype='i1')
+        
+    def step(self):
         global _MOVE_LUT, _TYPE_WALL
+        actions = self.next_action
         move_coords = self.player_coords + _MOVE_LUT[actions]
         move_success = np.equal(self.map_data_flat['type'][move_coords], 0)
         print(move_success, actions, move_coords)
@@ -67,4 +86,15 @@ class Core(object):
             self.player_coords, self.food_coords, return_indices=True)
         num_obtained_foods = len(isect)
         self.food_coords = np.delete(self.food_coords, food_idxs)
+        
+        self.step_reward = 0
+        self.step_reward += _REWARD_FOOD * num_obtained_foods
+        self.total_reward += self.step_reward
+        
+        self._reset_action()
+        return self.total_reward
+        
+    def set_action(self, action):
+        self.next_action[:] = action
+    
     
