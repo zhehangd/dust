@@ -51,6 +51,7 @@ def create_project(proj_name=None, proj_dir=None):
     _setup_project_logger() # One may use logging after this line
     proj.save_project()
     logging.info('Project {} created'.format(proj_name))
+    return proj
 
 def load_project(proj_name=None, proj_dir=None):
     """
@@ -80,15 +81,16 @@ def load_project(proj_name=None, proj_dir=None):
     _PROJECT = proj # One may use project() after this line
     _setup_project_logger() # One may use logging after this line
     logging.info('Project {} loaded'.format(proj_name))
+    return proj
 
 def create_or_load_project(proj_name=None, proj_dir=None):
     assert proj_name or proj_dir
     proj_name = proj_name or os.path.basename(proj_dir)
     proj_dir = proj_dir or proj_name
     if os.path.isdir(proj_dir):
-        load_project(proj_name=proj_name, proj_dir=proj_dir)
+        return load_project(proj_name=proj_name, proj_dir=proj_dir)
     else:
-        create_project(proj_name=proj_name, proj_dir=proj_dir)
+        return create_project(proj_name=proj_name, proj_dir=proj_dir)
 
 def _setup_project_logger():
     logtime = datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S')

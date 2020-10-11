@@ -25,7 +25,7 @@ _REWARD_FOOD = 50
 
 
 
-class Core(object):
+class Env(object):
     
     """
     
@@ -66,6 +66,7 @@ class Core(object):
         self.food_coords = food_coords
         self.step_reward = 0
         self.total_reward = 0
+        self.curr_time = 0
         
         # Next action for each player
         # Filled by agents between steps
@@ -91,6 +92,7 @@ class Core(object):
         self.step_reward += _REWARD_FOOD * num_obtained_foods
         self.total_reward += self.step_reward
         
+        self.curr_time += 1 
         self._reset_action()
         return self.total_reward
         

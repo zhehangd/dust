@@ -3,7 +3,8 @@ import time
 
 import numpy as np 
 
-from gym.envs.classic_control import rendering
+import dust
+from dust import rendering 
 
 # Sleep after each render
 # This allows us to control the actual FPS

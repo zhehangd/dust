@@ -1,8 +1,9 @@
 import numpy as np
 import time
 
-import dust.sim_system
+import dust
 
 if __name__ == '__main__':
-    s = dust.sim_system.SimSystem()
-    s.play()
+    proj = dust.create_or_load_project('testproj')
+    sim = dust.SimulationDemo()
+    sim.start()
