@@ -62,6 +62,7 @@ class Viewer(object):
         self.isopen = True
         self.geoms = []
         self.onetime_geoms = []
+        self.text_list = []
         self.transform = Transform()
 
         glEnable(GL_BLEND)
@@ -97,6 +98,8 @@ class Viewer(object):
             geom.render()
         for geom in self.onetime_geoms:
             geom.render()
+        for text in self.text_list:
+            text.draw()
         self.transform.disable()
         arr = None
         if return_rgb_array:
@@ -113,6 +116,7 @@ class Viewer(object):
             arr = arr[::-1,:,0:3]
         self.window.flip()
         self.onetime_geoms = []
+        self.text_list = []
         return arr if return_rgb_array else self.isopen
 
     # Convenience
@@ -139,6 +143,13 @@ class Viewer(object):
         _add_attrs(geom, attrs)
         self.add_onetime(geom)
         return geom
+    
+    def draw_text(self, text, pos, **kwargs):
+        label = pyglet.text.Label(text, x=pos[0], y=pos[1], **kwargs)
+        #    text, font_name='Times New Roman',
+        #    font_size=size, x=pos[0], y=pos[1],
+        #    anchor_x='center', anchor_y='center')
+        self.text_list.append(label)
 
     def get_array(self):
         self.window.flip()

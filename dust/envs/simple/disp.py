@@ -14,15 +14,6 @@ _RENDER_SLEEP_TIME = 0.01
 _DISP_WIN_WIDTH = 800
 _DISP_WIN_HEIGHT = 600
 
-# Defines the dimensions for rendering
-# By doing so we decouple the coordinate system used in rendering
-# from the actual window size.
-# The range of the x coordinates would be [0, _DISP_WORLD_WIDTH]
-# and y coordinates be [0, _DISP_WORLD_HEIGHT].
-_DISP_WORLD_SIZE = 100
-_DISP_WORLD_WIDTH = _DISP_WORLD_SIZE * _DISP_WIN_WIDTH // _DISP_WIN_HEIGHT
-_DISP_WORLD_HEIGHT = _DISP_WORLD_SIZE
-
 _COLOR_GROUND = (0.75, 0.93, 0.73)
 _COLOR_WALL = (0.2, 0.2, 0.2)
 _COLOR_FOOD = (0.9,0.1,0.1)
@@ -42,12 +33,12 @@ class Disp(object):
         w, h = core.map_data.shape
         
         # Size of a square
-        square_size = min(_DISP_WORLD_WIDTH / w, _DISP_WORLD_HEIGHT / h)
+        square_size = min(_DISP_WIN_WIDTH / w, _DISP_WIN_HEIGHT / h)
         
         # Top-left coordinate of the first square
         offset_coords = np.array([
-          (_DISP_WORLD_WIDTH - w * square_size) // 2,
-          (_DISP_WORLD_HEIGHT - h * square_size) // 2])
+          (_DISP_WIN_WIDTH - w * square_size) // 2,
+          (_DISP_WIN_HEIGHT - h * square_size) // 2])
         
         self.offset_coords = offset_coords
         self.square_size = square_size
@@ -56,7 +47,7 @@ class Disp(object):
     def render(self):
         if self.viewer is None:
             self.viewer = rendering.Viewer(_DISP_WIN_WIDTH, _DISP_WIN_HEIGHT)
-            self.viewer.set_bounds(0, _DISP_WORLD_WIDTH, 0, _DISP_WORLD_HEIGHT)
+            #self.viewer.set_bounds(0, _DISP_WIN_WIDTH, 0, _DISP_WIN_HEIGHT)
         
         core = self.core
         w, h = core.map_data.shape
@@ -87,6 +78,12 @@ class Disp(object):
             radius = self.square_size / 5.0
             res = max(8, round(radius * 8))
             self.viewer.draw_circle(radius, res, color=_COLOR_PLAYER).add_attr(t)
+        
+        info_text = "time:{:5} score:{:5}".format(
+            core.curr_time, core.total_reward)
+        self.viewer.draw_text(
+            info_text, (0,_DISP_WIN_HEIGHT-50),
+            font_size=20, color=(50,255,50,255))
         
         #t = rendering.Transform(translation=self._square_center_(*self.core.goal_pos))
         #self.viewer.draw_circle(1, 8, color=(0.9,0.1,0.1)).add_attr(t)
