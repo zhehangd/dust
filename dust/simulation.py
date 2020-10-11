@@ -4,6 +4,10 @@ import numpy as np
 
 import time
 
+
+def index_to_coords(idxs, h):
+    return np.stack((idxs // h, idxs % h), -1)
+
 class Agent(object):
     def __init__(self, env):
         self.env = env
@@ -15,8 +19,14 @@ class Agent(object):
         
         # observe
         env = self.env
-        coords = env.index_to_coords(env.player_coords)
-        obs = env.extract_obs(coords, 2, True)
+        
+        map_state = np.zeros(env.map_shape, np.float32)
+        map_state_flatten = map_state.reshape(-1)
+        map_state_flatten[env.wall_coords] = -1
+        map_state_flatten[env.food_coords] = 1
+        
+        coords = index_to_coords(env.player_coords, env.map_shape[1])
+        obs = dust.extract_view(map_state, coords, 2, True)
         print(obs)
         
         self.env.set_action(np.random.randint(0, 4, self.num_players))
@@ -35,14 +45,15 @@ class SimulationDemo(object):
         target_time = 1000
         
         #env.load(...) or env.init(...)
+        self.disp.render()
         while self.env.curr_time < target_time:
             
             # Agent observes the environment and take action
             self.agent.step()
-            
+            time.sleep(60)
             # Environment evolves a step
             self.env.step()
             
             self.disp.render()
-            time.sleep(0.1)
+            
             
