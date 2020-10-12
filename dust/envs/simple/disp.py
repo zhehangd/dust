@@ -80,7 +80,7 @@ class Disp(object):
             self.viewer.draw_circle(radius, res, color=_COLOR_PLAYER).add_attr(t)
         
         info_text = "time:{:5} score:{:5}".format(
-            core.curr_time, core.total_reward)
+            core.curr_step, core.total_reward)
         self.viewer.draw_text(
             info_text, (0,_DISP_WIN_HEIGHT-50),
             font_size=20, color=(50,255,50,255))

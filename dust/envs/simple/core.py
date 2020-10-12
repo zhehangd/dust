@@ -74,9 +74,13 @@ class Env(object):
         self.player_coords = player_coords
         self.food_coords = food_coords
         
-        self.step_reward = 0
+        self.tick_reward = 0
         self.total_reward = 0
-        self.curr_time = 0
+        self.curr_step = 0
+        self.curr_epoch = 0
+        self.epoch_end = False
+        
+        #self.world_reset_time = 200
         
         # Next action for each player
         # Filled by agents between steps
@@ -85,12 +89,12 @@ class Env(object):
     def _reset_action(self):
         self.next_action = np.zeros(_NUM_PLAYERS, dtype='i1')
         
-    def step(self):
+    def evolve(self):
         global _MOVE_LUT, _TYPE_WALL
         actions = self.next_action
         move_coords = self.player_coords + _MOVE_LUT[actions]
         move_success = np.equal(self.map_data_flat['type'][move_coords], 0)
-        print(move_success, actions, move_coords)
+        #print(move_success, actions, move_coords)
         self.player_coords[move_success] = move_coords[move_success]
         
         isect, _, food_idxs = np.intersect1d(
@@ -98,13 +102,21 @@ class Env(object):
         num_obtained_foods = len(isect)
         self.food_coords = np.delete(self.food_coords, food_idxs)
         
-        self.step_reward = 0
-        self.step_reward += _REWARD_FOOD * num_obtained_foods
-        self.total_reward += self.step_reward
+        self.tick_reward = 0
+        self.tick_reward += _REWARD_FOOD * num_obtained_foods
+        self.total_reward += self.tick_reward
         
-        self.curr_time += 1 
-        self._reset_action()
+        if self.curr_step == 200:
+            self.epoch_end = True
+        
         return self.total_reward
+    
+    def next(self):
+        self.curr_step += 1 
+        self._reset_action()
+        
+        if self.epoch_end == True:
+            self.reset()
     
     def set_action(self, action):
         self.next_action[:] = action
