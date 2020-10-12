@@ -37,7 +37,7 @@ class SimulationDemo(object):
             
             # Environment update its data and move to the
             # state of the next tick
-            self.env.next()
+            self.env.next_tick()
             
             time.sleep(0.03)
             

@@ -485,10 +485,14 @@ class Agent(object):
         map_state_flatten[env.wall_coords] = -1
         map_state_flatten[env.food_coords] = 1
         
+        # Generate vision at each player position
         coords = index_to_coords(env.player_coords, env.map_shape[1])
         obs = dust.extract_view(map_state, coords, 2, True)
         obs = obs.reshape((len(obs), -1))
-        print(obs)
+        
+        #a, v, logp = ac.step(torch.as_tensor(o, dtype=torch.float32))
+        
+        #print(obs)
         
         self.env.set_action(np.random.randint(0, 4, self.num_players))
 

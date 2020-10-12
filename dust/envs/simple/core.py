@@ -1,5 +1,7 @@
 import numpy as np
 
+import logging
+
 _MAP_WIDTH = 16
 _MAP_HEIGHT = 9
 _MAP_SIZE = (_MAP_WIDTH, _MAP_HEIGHT)
@@ -14,6 +16,8 @@ _MOVE_LUT = np.array([_MAP_HEIGHT, 1, -_MAP_HEIGHT, -1])
 _TYPE_WALL = 1
 
 _REWARD_FOOD = 50
+
+_MAX_TICKS_PER_EPOCH = 200
 
 # Coordinte system:
 # The *coordinates* of a position is represented by (xi, yi), where xi and
@@ -35,9 +39,18 @@ class Env(object):
     """
     
     def __init__(self):
-        self.reset()
         
-    def reset(self):
+        # Tick since the very beginning of the environment
+        self.curr_tick = 0
+        
+        # Epoch number
+        self.curr_epoch = 0
+        
+        self.new_epoch()
+        
+        
+        
+    def new_epoch(self):
         global _MAP_WIDTH, _MAP_HEIGHT, _MAP_SIZE, _MAP_ELEMS
         global _NUM_WALLS, _NUM_FOODS, _NUM_PLAYERS
         
@@ -62,25 +75,28 @@ class Env(object):
         
         # ground:0, wall:1
         map_dtype = [('type', 'i1')]
-        map_data = np.zeros(_MAP_SIZE, dtype=map_dtype)
-        map_data_flat = map_data.reshape(-1)
-        map_data_flat[wall_coords] = _TYPE_WALL
+        #map_data = np.zeros(_MAP_SIZE, dtype=map_dtype)
+        #map_data_flat = map_data.reshape(-1)
+        #map_data_flat[wall_coords] = _TYPE_WALL
         
         self.map_shape = (w, h)
-        self.map_data = map_data
-        self.map_data_flat = map_data_flat
+        #self.map_data = map_data
+        #self.map_data_flat = map_data_flat
         
         self.wall_coords = wall_coords
         self.player_coords = player_coords
         self.food_coords = food_coords
         
         self.tick_reward = 0
-        self.total_reward = 0
-        self.curr_step = 0
-        self.curr_epoch = 0
-        self.epoch_end = False
+        self.epoch_score = 0
         
-        #self.world_reset_time = 200
+        # Epoch tick reset every epoch
+        self.curr_epoch_tick = 0
+        
+        # True after the environment evolves to the
+        # termination state, and is reset in the subsequent
+        # next phase
+        self.epoch_end = False
         
         # Next action for each player
         # Filled by agents between steps
@@ -90,35 +106,46 @@ class Env(object):
         self.next_action = np.zeros(_NUM_PLAYERS, dtype='i1')
         
     def evolve(self):
+        
+        if self.curr_epoch_tick == 0:
+            logging.info('env: epoch {}'.format(self.curr_epoch))
+        
         global _MOVE_LUT, _TYPE_WALL
         actions = self.next_action
         move_coords = self.player_coords + _MOVE_LUT[actions]
-        move_success = np.equal(self.map_data_flat['type'][move_coords], 0)
-        #print(move_success, actions, move_coords)
+        
+        move_success = np.isin(move_coords, self.wall_coords,
+                               assume_unique=True, invert=True)
         self.player_coords[move_success] = move_coords[move_success]
         
-        isect, _, food_idxs = np.intersect1d(
+        _, feed_player_idxs, feed_food_idxs = np.intersect1d(
             self.player_coords, self.food_coords, return_indices=True)
-        num_obtained_foods = len(isect)
-        self.food_coords = np.delete(self.food_coords, food_idxs)
+        num_obtained_foods = len(feed_player_idxs)
+        self.food_coords = np.delete(self.food_coords, feed_food_idxs)
         
         self.tick_reward = 0
         self.tick_reward += _REWARD_FOOD * num_obtained_foods
-        self.total_reward += self.tick_reward
+        self.epoch_score += self.tick_reward
         
-        if self.curr_step == 200:
+        if self.curr_tick == _MAX_TICKS_PER_EPOCH:
             self.epoch_end = True
         
-        return self.total_reward
+        return self.epoch_score
     
-    def next(self):
-        self.curr_step += 1 
+    def next_tick(self):
+        """ Ends the current tick and moves to the next one
+        """
+        self.curr_tick += 1 
+        self.curr_epoch_tick += 1
         self._reset_action()
         
         if self.epoch_end == True:
-            self.reset()
+            self.new_epoch()
+            self.curr_epoch += 1
     
     def set_action(self, action):
+        """ Temp function used by agents to set actions
+        """
         self.next_action[:] = action
     
     

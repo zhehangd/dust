@@ -27,10 +27,9 @@ def _make_polygon(tl, br):
 
 class Disp(object):
     
-    def __init__(self, core):
-        self.core = core
-        assert core.map_data.ndim == 2
-        w, h = core.map_data.shape
+    def __init__(self, env):
+        self.env = env
+        w, h = env.map_shape
         
         # Size of a square
         square_size = min(_DISP_WIN_WIDTH / w, _DISP_WIN_HEIGHT / h)
@@ -49,8 +48,8 @@ class Disp(object):
             self.viewer = rendering.Viewer(_DISP_WIN_WIDTH, _DISP_WIN_HEIGHT)
             #self.viewer.set_bounds(0, _DISP_WIN_WIDTH, 0, _DISP_WIN_HEIGHT)
         
-        core = self.core
-        w, h = core.map_data.shape
+        env = self.env
+        w, h = env.map_shape
         
         global _COLOR_GROUND, _COLOR_WALL, _COLOR_FOOD
         
@@ -58,12 +57,13 @@ class Disp(object):
         ground_br, _ = self._square_coords(w, h)
         self.viewer.draw_polygon(_make_polygon(ground_tl, ground_br), color=_COLOR_GROUND)
         
-        wall_xi_list, wall_yi_list = np.where(core.map_data['type'] == 1)
-        for xi, yi in zip(wall_xi_list, wall_yi_list):
+        for wall_i in env.wall_coords:
+            xi = wall_i // h
+            yi = wall_i % h
             tl, br = self._square_coords(xi, yi)
             self.viewer.draw_polygon(_make_polygon(tl, br), color=_COLOR_WALL)
         
-        for food_i in core.food_coords:
+        for food_i in env.food_coords:
             xi = food_i // h
             yi = food_i % h
             t = rendering.Transform(translation=self._square_center_(xi, yi))
@@ -71,7 +71,7 @@ class Disp(object):
             res = max(8, round(radius * 8))
             self.viewer.draw_circle(radius, res, color=_COLOR_FOOD).add_attr(t)
         
-        for player_i in core.player_coords:
+        for player_i in env.player_coords:
             xi = player_i // h
             yi = player_i % h
             t = rendering.Transform(translation=self._square_center_(xi, yi))
@@ -80,15 +80,15 @@ class Disp(object):
             self.viewer.draw_circle(radius, res, color=_COLOR_PLAYER).add_attr(t)
         
         info_text = "time:{:5} score:{:5}".format(
-            core.curr_step, core.total_reward)
+            env.curr_epoch_tick, env.epoch_score)
         self.viewer.draw_text(
             info_text, (0,_DISP_WIN_HEIGHT-50),
             font_size=20, color=(50,255,50,255))
         
-        #t = rendering.Transform(translation=self._square_center_(*self.core.goal_pos))
+        #t = rendering.Transform(translation=self._square_center_(*self.env.goal_pos))
         #self.viewer.draw_circle(1, 8, color=(0.9,0.1,0.1)).add_attr(t)
         
-        #t = rendering.Transform(translation=self._square_center_(*self.core.player_pos))
+        #t = rendering.Transform(translation=self._square_center_(*self.env.player_pos))
         #self.viewer.draw_circle(1, 8, color=(0.2,0.8,0.2)).add_attr(t)
         
         if _RENDER_SLEEP_TIME > 0:
@@ -107,7 +107,7 @@ class Disp(object):
         Returns:
           ((x,y), (x,y)) 
         """
-        w, h = self.core.map_data.shape
+        w, h = self.env.map_shape
         sx = self.offset_coords[0] + self.square_size * xi
         sy = self.offset_coords[1] + self.square_size * (h - yi)
         tl = (sx, sy)
