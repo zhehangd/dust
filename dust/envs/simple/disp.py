@@ -24,7 +24,6 @@ _COLOR_PLAYER = (0.1,0.9,0.1)
 def _make_polygon(tl, br):
     return [tl, (br[0], tl[1]), br, (tl[0], br[1])]
 
-
 class Disp(object):
     
     def __init__(self, env):
@@ -84,12 +83,6 @@ class Disp(object):
         self.viewer.draw_text(
             info_text, (0,_DISP_WIN_HEIGHT-50),
             font_size=20, color=(50,255,50,255))
-        
-        #t = rendering.Transform(translation=self._square_center_(*self.env.goal_pos))
-        #self.viewer.draw_circle(1, 8, color=(0.9,0.1,0.1)).add_attr(t)
-        
-        #t = rendering.Transform(translation=self._square_center_(*self.env.player_pos))
-        #self.viewer.draw_circle(1, 8, color=(0.2,0.8,0.2)).add_attr(t)
         
         if _RENDER_SLEEP_TIME > 0:
             time.sleep(_RENDER_SLEEP_TIME)

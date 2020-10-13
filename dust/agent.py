@@ -174,8 +174,8 @@ class PPOBuffer:
         assert self.ptr == self.max_size    # buffer has to be full before you can get
         self.ptr, self.path_start_idx = 0, 0
         # the next two lines implement the advantage normalization trick
-        adv_mean, adv_std = mpi_statistics_scalar(self.adv_buf)
-        self.adv_buf = (self.adv_buf - adv_mean) / adv_std
+        #adv_mean, adv_std = mpi_statistics_scalar(self.adv_buf)
+        #self.adv_buf = (self.adv_buf - adv_mean) / adv_std
         data = dict(obs=self.obs_buf, act=self.act_buf, ret=self.ret_buf,
                     adv=self.adv_buf, logp=self.logp_buf)
         return {k: torch.as_tensor(v, dtype=torch.float32) for k,v in data.items()}
@@ -382,7 +382,7 @@ def index_to_coords(idxs, h):
     return np.stack((idxs // h, idxs % h), -1)
 
 # Set up function for computing PPO policy loss
-def compute_loss_pi(data):
+def compute_loss_pi(ac, data):
     clip_ratio = 0.2
     obs, act, adv, logp_old = data['obs'], data['act'], data['adv'], data['logp']
 
@@ -402,25 +402,25 @@ def compute_loss_pi(data):
     return loss_pi, pi_info
 
 # Set up function for computing value loss
-def compute_loss_v(data):
+def compute_loss_v(ac, data):
     obs, ret = data['obs'], data['ret']
     return ((ac.v(obs) - ret)**2).mean()
 
-def update(data, ac, pi_optim, vf_optim):
+def network_update(ac, data, pi_optim, vf_optim):
     train_v_iters = 80
     train_pi_iters = 80
     target_kl = 0.01
-    data = buf.get()
-
-    pi_l_old, pi_info_old = compute_loss_pi(data)
+    
+    pi_l_old, pi_info_old = compute_loss_pi(ac, data)
     pi_l_old = pi_l_old.item()
-    v_l_old = compute_loss_v(data).item()
+    v_l_old = compute_loss_v(ac, data).item()
 
     # Train policy with multiple steps of gradient descent
     for i in range(train_pi_iters):
         pi_optim.zero_grad()
-        loss_pi, pi_info = compute_loss_pi(data)
-        kl = mpi_avg(pi_info['kl'])
+        loss_pi, pi_info = compute_loss_pi(ac, data)
+        #kl = mpi_avg(pi_info['kl'])
+        kl = pi_info['kl']
         if kl > 1.5 * target_kl:
             logging.info('Early stopping at step %d due to reaching max kl.'%i)
             break
@@ -434,7 +434,7 @@ def update(data, ac, pi_optim, vf_optim):
     # Value function learning
     for i in range(train_v_iters):
         vf_optim.zero_grad()
-        loss_v = compute_loss_v(data)
+        loss_v = compute_loss_v(ac, data)
         loss_v.backward()
         # TODO
         #mpi_avg_grads(ac.v)    # average grads across MPI processes
@@ -458,12 +458,11 @@ class Agent(object):
         var_counts = tuple(count_vars(module) for module in [ac.pi, ac.v])
         logging.info('\nNumber of parameters: \t pi: %d, \t v: %d\n'%var_counts)
         
-        steps_per_update = 200
         obs_dim = 25
         act_dim = 4
         gamma = 0.999
         lam = 0.97
-        buf = PPOBuffer(obs_dim, act_dim, steps_per_update, gamma, lam)
+        buf = PPOBuffer(obs_dim, 1, env.ticks_per_epoch, gamma, lam)
         self.buf = buf
         
         pi_lr = 3e-4
@@ -472,7 +471,21 @@ class Agent(object):
         vf_optim = Adam(ac.v.parameters(), lr=vf_lr)
         self.pi_optim = pi_optim
         self.vf_optim = vf_optim
-        
+    
+    def _get_observation(self):
+        """ Extract observation from the current env
+        """
+        env = self.env
+        # Generate vision at each player position
+        coords = index_to_coords(env.player_coords, env.map_shape[1])
+        map_state = np.zeros(env.map_shape, np.float32)
+        map_state_flatten = map_state.reshape(-1)
+        map_state_flatten[env.wall_coords] = -1
+        map_state_flatten[env.food_coords] = 1
+        obs = dust.extract_view(map_state, coords, 2, True)
+        obs = obs.reshape((len(obs), -1))
+        return obs
+    
     def act(self):
         
         # Check any event and calculate the reward from the last stepb 
@@ -480,30 +493,41 @@ class Agent(object):
         # observe
         env = self.env
         
-        map_state = np.zeros(env.map_shape, np.float32)
-        map_state_flatten = map_state.reshape(-1)
-        map_state_flatten[env.wall_coords] = -1
-        map_state_flatten[env.food_coords] = 1
+        obs = self._get_observation()
+        ac = self.ac
+        a, v, logp = ac.step(torch.as_tensor(obs, dtype=torch.float32))
         
-        # Generate vision at each player position
-        coords = index_to_coords(env.player_coords, env.map_shape[1])
-        obs = dust.extract_view(map_state, coords, 2, True)
-        obs = obs.reshape((len(obs), -1))
-        
-        #a, v, logp = ac.step(torch.as_tensor(o, dtype=torch.float32))
-        
-        #print(obs)
-        
-        self.env.set_action(np.random.randint(0, 4, self.num_players))
+        #self.env.set_action(np.random.randint(0, 4, self.num_players))
+        self.env.set_action(a)
+        self.ac_data = (a, v, logp, obs)
+        #logging.info('act: {}'.format(env.curr_epoch_tick))
 
     def update(self):
         # collect rewards
         env = self.env
         reward = env.tick_reward
         
-        if env.epoch_end == True:
-            logging.info('Agent: Epoch End')
-            pass
+        assert env.curr_epoch_tick < env.ticks_per_epoch, \
+            '{} {} {} {} {}'.format(env.curr_epoch_tick, env.ticks_per_epoch, env.curr_tick, env.curr_epoch, env.epoch_end)
+        a, v, logp, obs = self.ac_data
+        r = env.tick_reward
+        ac = self.ac
+        buf = self.buf
+        buf.store(obs, a, r, v, logp)
         
+        if env.epoch_end == True:
+            logging.info('agent: Epoch End')
+            # This is the last tick of the epoch, so we evaluate the the
+            # value function and end the buffer
+            obs = self._get_observation()
+            _, v, _ = ac.step(torch.as_tensor(obs, dtype=torch.float32))
+            buf.finish_path(v)
+            
+            data = buf.get()
+            logging.info(str(data))
+            network_update(ac, data, self.pi_optim, self.vf_optim)
+            
+            assert env.curr_epoch_tick == env.ticks_per_epoch - 1
+        #logging.info('update: {}'.format(env.curr_epoch_tick))
         
         

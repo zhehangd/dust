@@ -27,8 +27,6 @@ _MAX_TICKS_PER_EPOCH = 200
 # The *index* of a position is defined as xi * H + yi, which is used to
 # access the elements of a flattened array.
 
-
-
 class Env(object):
     
     """
@@ -47,8 +45,6 @@ class Env(object):
         self.curr_epoch = 0
         
         self.new_epoch()
-        
-        
         
     def new_epoch(self):
         global _MAP_WIDTH, _MAP_HEIGHT, _MAP_SIZE, _MAP_ELEMS
@@ -73,15 +69,7 @@ class Env(object):
         food_coords = empty_coords[:_NUM_FOODS]
         player_coords = empty_coords[_NUM_FOODS:_NUM_FOODS+_NUM_PLAYERS]
         
-        # ground:0, wall:1
-        map_dtype = [('type', 'i1')]
-        #map_data = np.zeros(_MAP_SIZE, dtype=map_dtype)
-        #map_data_flat = map_data.reshape(-1)
-        #map_data_flat[wall_coords] = _TYPE_WALL
-        
         self.map_shape = (w, h)
-        #self.map_data = map_data
-        #self.map_data_flat = map_data_flat
         
         self.wall_coords = wall_coords
         self.player_coords = player_coords
@@ -98,9 +86,12 @@ class Env(object):
         # next phase
         self.epoch_end = False
         
+        self.ticks_per_epoch = _MAX_TICKS_PER_EPOCH
+        
         # Next action for each player
         # Filled by agents between steps
         self._reset_action()
+        logging.info('new_epoch: {}'.format(self.curr_epoch_tick))
     
     def _reset_action(self):
         self.next_action = np.zeros(_NUM_PLAYERS, dtype='i1')
@@ -127,9 +118,10 @@ class Env(object):
         self.tick_reward += _REWARD_FOOD * num_obtained_foods
         self.epoch_score += self.tick_reward
         
-        if self.curr_tick == _MAX_TICKS_PER_EPOCH:
+        assert self.curr_epoch_tick <= _MAX_TICKS_PER_EPOCH - 1
+        if self.curr_epoch_tick == _MAX_TICKS_PER_EPOCH - 1:
             self.epoch_end = True
-        
+        #logging.info('evolve: {}'.format(self.curr_epoch_tick))
         return self.epoch_score
     
     def next_tick(self):
@@ -138,10 +130,10 @@ class Env(object):
         self.curr_tick += 1 
         self.curr_epoch_tick += 1
         self._reset_action()
-        
         if self.epoch_end == True:
             self.new_epoch()
             self.curr_epoch += 1
+        #logging.info('next_tick: {}'.format(self.curr_epoch_tick))
     
     def set_action(self, action):
         """ Temp function used by agents to set actions
