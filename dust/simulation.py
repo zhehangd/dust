@@ -42,3 +42,19 @@ class SimulationDemo(object):
             time.sleep(0.03)
             
             
+    def train(self):
+        while True:
+            
+            # Agents observe the environment and take action
+            self.agent.act()
+            
+            # Environment evolves
+            self.env.evolve()
+            
+            # Agents get the feedback from the environment
+            # and update themselves
+            self.agent.update()
+            
+            # Environment update its data and move to the
+            # state of the next tick
+            self.env.next_tick()

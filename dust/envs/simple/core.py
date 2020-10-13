@@ -91,17 +91,11 @@ class Env(object):
         # Next action for each player
         # Filled by agents between steps
         self._reset_action()
-        logging.info('new_epoch: {}'.format(self.curr_epoch_tick))
     
     def _reset_action(self):
         self.next_action = np.zeros(_NUM_PLAYERS, dtype='i1')
         
     def evolve(self):
-        
-        if self.curr_epoch_tick == 0:
-            logging.info('env: epoch {}'.format(self.curr_epoch))
-        
-        global _MOVE_LUT, _TYPE_WALL
         actions = self.next_action
         move_coords = self.player_coords + _MOVE_LUT[actions]
         

@@ -508,7 +508,8 @@ class Agent(object):
         reward = env.tick_reward
         
         assert env.curr_epoch_tick < env.ticks_per_epoch, \
-            '{} {} {} {} {}'.format(env.curr_epoch_tick, env.ticks_per_epoch, env.curr_tick, env.curr_epoch, env.epoch_end)
+            '{} {} {} {} {}'.format(env.curr_epoch_tick, env.ticks_per_epoch,
+                                    env.curr_tick, env.curr_epoch, env.epoch_end)
         a, v, logp, obs = self.ac_data
         r = env.tick_reward
         ac = self.ac
@@ -516,17 +517,14 @@ class Agent(object):
         buf.store(obs, a, r, v, logp)
         
         if env.epoch_end == True:
-            logging.info('agent: Epoch End')
+            logging.info('epoch:{}, score:{}'.format(env.curr_epoch, env.epoch_score))
             # This is the last tick of the epoch, so we evaluate the the
             # value function and end the buffer
             obs = self._get_observation()
             _, v, _ = ac.step(torch.as_tensor(obs, dtype=torch.float32))
             buf.finish_path(v)
-            
             data = buf.get()
-            logging.info(str(data))
             network_update(ac, data, self.pi_optim, self.vf_optim)
-            
             assert env.curr_epoch_tick == env.ticks_per_epoch - 1
         #logging.info('update: {}'.format(env.curr_epoch_tick))
         
