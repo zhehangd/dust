@@ -8,7 +8,7 @@ _MAP_SIZE = (_MAP_WIDTH, _MAP_HEIGHT)
 _MAP_ELEMS = _MAP_WIDTH * _MAP_HEIGHT
 
 _NUM_WALLS = _MAP_ELEMS // 8
-_NUM_FOODS = _MAP_ELEMS // 8
+_NUM_FOODS = 5
 _NUM_PLAYERS = 1 # NOTE: current implementation does not support #player > 1
 
 _MOVE_LUT = np.array([_MAP_HEIGHT, 1, -_MAP_HEIGHT, -1])
@@ -17,7 +17,7 @@ _TYPE_WALL = 1
 
 _REWARD_FOOD = 50
 
-_MAX_TICKS_PER_EPOCH = 200
+_MAX_TICKS_PER_EPOCH = 100
 
 # Coordinte system:
 # The *coordinates* of a position is represented by (xi, yi), where xi and
@@ -74,9 +74,11 @@ class Env(object):
         self.wall_coords = wall_coords
         self.player_coords = player_coords
         self.food_coords = food_coords
+        self.move_count = np.zeros(_MAP_ELEMS, dtype=int)
         
         self.tick_reward = 0
         self.epoch_score = 0
+        self.epoch_reward = 0
         
         # Epoch tick reset every epoch
         self.curr_epoch_tick = 0
@@ -101,7 +103,12 @@ class Env(object):
         
         move_success = np.isin(move_coords, self.wall_coords,
                                assume_unique=True, invert=True)
+        
+        num_colision = np.count_nonzero(np.logical_not(move_success))
+        
         self.player_coords[move_success] = move_coords[move_success]
+        
+        self.move_count[self.player_coords] += 1
         
         _, feed_player_idxs, feed_food_idxs = np.intersect1d(
             self.player_coords, self.food_coords, return_indices=True)
@@ -110,6 +117,11 @@ class Env(object):
         
         self.tick_reward = 0
         self.tick_reward += _REWARD_FOOD * num_obtained_foods
+        #self.tick_reward -= np.sum(np.maximum(0, self.move_count[self.player_coords] - 2))
+        self.tick_reward -= num_colision
+        
+        #logging.info(self.tick_reward)
+        self.epoch_reward += self.tick_reward
         self.epoch_score += self.tick_reward
         
         assert self.curr_epoch_tick <= _MAX_TICKS_PER_EPOCH - 1

@@ -3,11 +3,14 @@ import scipy.signal
 from gym.spaces import Box, Discrete
 
 import logging
+import os
 
 import torch
 import torch.nn as nn
 from torch.distributions.normal import Normal
 from torch.distributions.categorical import Categorical
+
+import dust
 
 def combined_shape(length, shape=None):
     if shape is None:
@@ -517,7 +520,7 @@ class Agent(object):
         buf.store(obs, a, r, v, logp)
         
         if env.epoch_end == True:
-            logging.info('epoch:{}, score:{}'.format(env.curr_epoch, env.epoch_score))
+            logging.info('epoch: {} score: {}'.format(env.curr_epoch, env.epoch_score))
             # This is the last tick of the epoch, so we evaluate the the
             # value function and end the buffer
             obs = self._get_observation()
@@ -526,6 +529,13 @@ class Agent(object):
             data = buf.get()
             network_update(ac, data, self.pi_optim, self.vf_optim)
             assert env.curr_epoch_tick == env.ticks_per_epoch - 1
+            
+            if env.curr_epoch % 10 == 0:
+                proj = dust.project()
+                net_file = os.path.join(proj.proj_dir, 'network.pth')
+                #state = {'pi': ac.pi, 'v': ac.v}
+                torch.save(ac, net_file)
+            
         #logging.info('update: {}'.format(env.curr_epoch_tick))
         
         

@@ -56,6 +56,16 @@ class Disp(object):
         ground_br, _ = self._square_coords(w, h)
         self.viewer.draw_polygon(_make_polygon(ground_tl, ground_br), color=_COLOR_GROUND)
         
+        visited_coords = np.where(env.move_count != 0)[0]
+        for visited_i in visited_coords:
+            move_count = env.move_count[visited_i]
+            xi = visited_i // h
+            yi = visited_i % h
+            tl, br = self._square_coords(xi, yi)
+            x = 1 - min(1.0, move_count / 10.0)
+            color = (1.0, x, x)
+            self.viewer.draw_polygon(_make_polygon(tl, br), color=color)
+        
         for wall_i in env.wall_coords:
             xi = wall_i // h
             yi = wall_i % h
