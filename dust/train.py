@@ -1,9 +1,10 @@
 import numpy as np
 import time
 
-import dust
+from dust.core import project
+from dust.dev import simulation
 
 if __name__ == '__main__':
-    proj = dust.create_or_load_project('testproj')
-    sim = dust.SimulationDemo(True)
+    proj = project.load_project()
+    sim = simulation.SimulationDemo(True)
     sim.start()

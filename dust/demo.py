@@ -3,10 +3,11 @@ import time
 
 import torch
 
-import dust
+from dust.core import project
+from dust.dev import simulation
 
 if __name__ == '__main__':
-    proj = dust.create_or_load_project('testproj')
-    sim = dust.SimulationDemo(False)
+    proj = project.load_project()
+    sim = simulation.SimulationDemo(False)
     sim.agent.ac =  torch.load('testprojx/network.pth')
     sim.start()

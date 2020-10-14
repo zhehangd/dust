@@ -1,16 +1,17 @@
-import numpy as np
-import scipy.signal
-from gym.spaces import Box, Discrete
-
 import logging
 import os
 
+import numpy as np
+import scipy.signal
+from gym.spaces import Box, Discrete
 import torch
 import torch.nn as nn
 from torch.distributions.normal import Normal
 from torch.distributions.categorical import Categorical
 
-import dust
+from dust import _dust
+from dust.core import progress_log
+from dust.utils import np_utils
 
 def combined_shape(length, shape=None):
     if shape is None:
@@ -477,7 +478,7 @@ class Agent(object):
             vf_optim = Adam(ac.v.parameters(), lr=vf_lr)
             self.pi_optim = pi_optim
             self.vf_optim = vf_optim
-            self.progress = dust.ProgressLog()
+            self.progress = progress_log.ProgressLog()
     
     def _get_observation(self):
         """ Extract observation from the current env
@@ -489,7 +490,7 @@ class Agent(object):
         map_state_flatten = map_state.reshape(-1)
         map_state_flatten[env.wall_coords] = -1
         map_state_flatten[env.food_coords] = 1
-        obs = dust.extract_view(map_state, coords, 2, True)
+        obs = np_utils.extract_view(map_state, coords, 2, True)
         obs = obs.reshape((len(obs), -1))
         return obs
     
@@ -548,7 +549,7 @@ class Agent(object):
         assert env.curr_epoch_tick == env.ticks_per_epoch - 1
     
     def _save_actor_critic(self):
-        proj = dust.project()
+        proj = _dust.project()
         net_file = os.path.join(proj.proj_dir, 'network.pth')
         torch.save(self.ac, net_file)
         

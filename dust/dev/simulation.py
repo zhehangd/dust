@@ -1,18 +1,17 @@
-import dust
+import logging
+import time
 
 import numpy as np
 
-import time
-
-from dust import agent
-
-import logging
+from dust.utils import utils
+from dust.dev import agent
+from dust.dev import simple as env_simple
 
 class SimulationDemo(object):
     
     def __init__(self, is_training):
-        self.env = dust.envs.simple.Env()
-        self.disp = dust.envs.simple.Disp(self.env)
+        self.env = env_simple.Env()
+        self.disp = env_simple.Disp(self.env)
         self.agent = agent.Agent(self.env, is_training)
         self.is_training = is_training
     
@@ -30,16 +29,16 @@ class SimulationDemo(object):
         while True:
             
             # Agents observe the environment and take action
-            with dust.Timer(time_table, 'agent'):
+            with utils.Timer(time_table, 'agent'):
                 self.agent.act()
             
             # Environment evolves
-            with dust.Timer(time_table, 'env'):
+            with utils.Timer(time_table, 'env'):
                 self.env.evolve()
             
             # Agents get the feedback from the environment
             # and update themselves
-            with dust.Timer(time_table, 'agent'):
+            with utils.Timer(time_table, 'agent'):
                 self.agent.update()
             
             # Display the current status
@@ -48,7 +47,7 @@ class SimulationDemo(object):
             
             # Environment update its data and move to the
             # state of the next tick
-            with dust.Timer(time_table, 'env'):
+            with utils.Timer(time_table, 'env'):
                 self.env.next_tick()
             
             if not self.is_training:

@@ -1,17 +1,15 @@
 import os
 import sys
 
-import dust
-
-__all__ = ['ProgressLog']
+from dust import _dust
 
 class ProgressLog(object):
     
     def __init__(self):
-        if dust.has_project():
-            proj = dust.project()
+        if _dust.inside_project():
+            proj = _dust.project()
             progress_filename = '{}/progress/{}.progress.txt'.format(
-            proj.proj_dir, proj.time_tag)
+                proj.proj_dir, proj.time_tag)
             os.makedirs(os.path.dirname(progress_filename), exist_ok=True)
             self._file = open(progress_filename, 'w')
         else:

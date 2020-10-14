@@ -1,6 +1,6 @@
-import numpy as np
-
 import logging
+
+import numpy as np
 
 _MAP_WIDTH = 16
 _MAP_HEIGHT = 9

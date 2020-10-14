@@ -3,8 +3,7 @@ import time
 
 import numpy as np 
 
-import dust
-from dust import rendering 
+from dust.dev import rendering 
 
 # Sleep after each render
 # This allows us to control the actual FPS
