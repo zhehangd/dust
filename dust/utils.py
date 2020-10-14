@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 
 import numpy as np
 
@@ -46,3 +47,18 @@ def extract_view(src, pos, vr, batched=False):
     if not batched:
         dst = dst[0]
     return dst
+
+class Timer(object):
+    def __init__(self, parent, name):
+        self.name = name
+        self.parent = parent
+        
+    def __enter__(self):
+        self.t = time.time()
+        
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.t = time.time() - self.t
+        if self.name in self.parent:
+            self.parent[self.name] += self.t
+        else:
+            self.parent[self.name] = self.t

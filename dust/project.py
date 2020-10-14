@@ -12,6 +12,7 @@ class Project(object):
     def __init__(self):
         self.proj_name = 'unnamed'
         self.proj_dir = "N/A"
+        self.time_tag = datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S')
     
     def __str__(self):
         return 'project {}@{}'.format(
@@ -24,12 +25,15 @@ class Project(object):
         with open(proj_file, 'w') as f:
             toml.dump(dict(proj_name = self.proj_name), f)
 
+def has_project():
+    return isinstance(_PROJECT, Project)
+
 def project():
     """ Returns the current project
     One should call this after a project is created or loaded
     """
     global _PROJECT
-    assert isinstance(_PROJECT, Project)
+    assert isinstance(_PROJECT, Project), 'You haven\'t loaded a project.'
     return _PROJECT
 
 def create_project(proj_name=None, proj_dir=None):
@@ -93,8 +97,9 @@ def create_or_load_project(proj_name=None, proj_dir=None):
         return create_project(proj_name=proj_name, proj_dir=proj_dir)
 
 def _setup_project_logger():
-    logtime = datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S')
-    logfile = os.path.join(project().proj_dir, 'logs', '{}.log'.format(logtime))
+    
+    tag = project().time_tag
+    logfile = os.path.join(project().proj_dir, 'logs', '{}.log'.format(tag))
     
     logger = logging.getLogger(None)
     logger.setLevel(logging.INFO)

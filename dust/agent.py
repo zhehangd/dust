@@ -451,7 +451,7 @@ def network_update(ac, data, pi_optim, vf_optim):
                     DeltaLossV=(loss_v.item() - v_l_old))
 
 class Agent(object):
-    def __init__(self, env):
+    def __init__(self, env, is_training):
         self.env = env
         self.num_players = 1
         
@@ -461,19 +461,23 @@ class Agent(object):
         var_counts = tuple(count_vars(module) for module in [ac.pi, ac.v])
         logging.info('\nNumber of parameters: \t pi: %d, \t v: %d\n'%var_counts)
         
-        obs_dim = 25
-        act_dim = 4
-        gamma = 0.999
-        lam = 0.97
-        buf = PPOBuffer(obs_dim, 1, env.ticks_per_epoch, gamma, lam)
-        self.buf = buf
+        self.training = is_training
         
-        pi_lr = 3e-4
-        vf_lr = 1e-3
-        pi_optim = Adam(ac.pi.parameters(), lr=pi_lr)
-        vf_optim = Adam(ac.v.parameters(), lr=vf_lr)
-        self.pi_optim = pi_optim
-        self.vf_optim = vf_optim
+        if self.training:
+            obs_dim = 25
+            act_dim = 4
+            gamma = 0.999
+            lam = 0.97
+            buf = PPOBuffer(obs_dim, 1, env.ticks_per_epoch, gamma, lam)
+            self.buf = buf
+            
+            pi_lr = 3e-4
+            vf_lr = 1e-3
+            pi_optim = Adam(ac.pi.parameters(), lr=pi_lr)
+            vf_optim = Adam(ac.v.parameters(), lr=vf_lr)
+            self.pi_optim = pi_optim
+            self.vf_optim = vf_optim
+            self.progress = dust.ProgressLog()
     
     def _get_observation(self):
         """ Extract observation from the current env
@@ -509,33 +513,42 @@ class Agent(object):
         # collect rewards
         env = self.env
         reward = env.tick_reward
-        
         assert env.curr_epoch_tick < env.ticks_per_epoch, \
             '{} {} {} {} {}'.format(env.curr_epoch_tick, env.ticks_per_epoch,
                                     env.curr_tick, env.curr_epoch, env.epoch_end)
-        a, v, logp, obs = self.ac_data
-        r = env.tick_reward
-        ac = self.ac
-        buf = self.buf
-        buf.store(obs, a, r, v, logp)
-        
-        if env.epoch_end == True:
-            logging.info('epoch: {} score: {}'.format(env.curr_epoch, env.epoch_score))
-            # This is the last tick of the epoch, so we evaluate the the
-            # value function and end the buffer
-            obs = self._get_observation()
-            _, v, _ = ac.step(torch.as_tensor(obs, dtype=torch.float32))
-            buf.finish_path(v)
-            data = buf.get()
-            network_update(ac, data, self.pi_optim, self.vf_optim)
-            assert env.curr_epoch_tick == env.ticks_per_epoch - 1
-            
-            if env.curr_epoch % 10 == 0:
-                proj = dust.project()
-                net_file = os.path.join(proj.proj_dir, 'network.pth')
-                #state = {'pi': ac.pi, 'v': ac.v}
-                torch.save(ac, net_file)
+        if self.training:
+            self._push_tick_training_data()
+            if env.epoch_end == True:
+                self.progress.set_fields(epoch=env.curr_epoch, score=env.epoch_score)
+                self.progress.finish_line()
+                self._push_epoch_training_data()
+                if env.curr_epoch % 10 == 0:
+                    self._save_actor_critic()
             
         #logging.info('update: {}'.format(env.curr_epoch_tick))
         
+    def _push_tick_training_data(self):
+        a, v, logp, obs = self.ac_data
+        r = self.env.tick_reward
+        ac = self.ac
+        buf = self.buf
+        buf.store(obs, a, r, v, logp)
+    
+    def _push_epoch_training_data(self):
+        # This is the last tick of the epoch, so we evaluate the the
+        # value function and end the buffer
+        ac = self.ac
+        buf = self.buf
+        obs = self._get_observation()
+        _, v, _ = ac.step(torch.as_tensor(obs, dtype=torch.float32))
+        buf.finish_path(v)
+        data = buf.get()
+        network_update(ac, data, self.pi_optim, self.vf_optim)
+        env = self.env
+        assert env.curr_epoch_tick == env.ticks_per_epoch - 1
+    
+    def _save_actor_critic(self):
+        proj = dust.project()
+        net_file = os.path.join(proj.proj_dir, 'network.pth')
+        torch.save(self.ac, net_file)
         
