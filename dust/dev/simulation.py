@@ -3,9 +3,15 @@ import time
 
 import numpy as np
 
+from dust import _dust
 from dust.utils import utils
 from dust.dev import agent
 from dust.dev import simple as env_simple
+
+_argparser = _dust.argparser()
+
+_argparser.add_argument('--timing_ticks', type=int, default=10000,
+                        help='Number of ticks between each timing')
 
 class SimulationDemo(object):
     
@@ -19,6 +25,9 @@ class SimulationDemo(object):
         """ Start a playing session
         """        
         #env.load(...) or env.init(...)
+        
+        proj = _dust.project()
+        logging.info('proj.args.timing_ticks={}'.format(proj.args.timing_ticks))
         
         if not self.is_training:
             self.disp.render()
@@ -54,7 +63,10 @@ class SimulationDemo(object):
                 time.sleep(0.03)
             
             time_count += 1
-            if time_count % 1000 == 0:
-                logging.info(' '.join('{}: {} '.format(k, v) for k, v in time_table.items()))
+            if time_count % proj.args.timing_ticks == 0:
+                msg = 'Time cost in {} ticks: '.format(proj.args.timing_ticks)
+                msg += ' '.join('<{}>: {:<.4}'.format(k, v) \
+                    for k, v in time_table.items())
+                logging.info(msg)
                 time_table = {}
             
