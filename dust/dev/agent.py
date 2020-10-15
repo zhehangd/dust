@@ -13,6 +13,11 @@ from dust import _dust
 from dust.core import progress_log
 from dust.utils import np_utils
 
+_argparser = _dust.argparser()
+
+_argparser.add_argument('--cuda', action='store_true',
+    help='Use CUDA')
+
 def combined_shape(length, shape=None):
     if shape is None:
         return (length,)
@@ -92,6 +97,10 @@ class MLPActorCritic(nn.Module):
         super().__init__()
         self.pi = MLPCategoricalActor(obs_dim, act_dim, (16,16))
         self.v  = MLPCritic(obs_dim, (16,16))
+        self.use_cuda = _dust.project().args.cuda
+        if self.use_cuda:
+            self.pi.cuda()
+            self.v.cuda()
 
     def step(self, obs):
         with torch.no_grad():
@@ -99,6 +108,10 @@ class MLPActorCritic(nn.Module):
             a = pi.sample()
             logp_a = self.pi._log_prob_from_distribution(pi, a)
             v = self.v(obs)
+        if self.use_cuda:
+            a = a.cpu()
+            v = v.cpu()
+            logp_a = logp_a.cpu()
         return a.numpy(), v.numpy(), logp_a.numpy()
 
     def act(self, obs):
@@ -182,7 +195,12 @@ class PPOBuffer:
         #self.adv_buf = (self.adv_buf - adv_mean) / adv_std
         data = dict(obs=self.obs_buf, act=self.act_buf, ret=self.ret_buf,
                     adv=self.adv_buf, logp=self.logp_buf)
-        return {k: torch.as_tensor(v, dtype=torch.float32) for k,v in data.items()}
+        
+        if _dust.project().args.cuda:
+            return {k: torch.as_tensor(v, dtype=torch.float32).cuda() for k,v in data.items()}
+        else:
+            return {k: torch.as_tensor(v, dtype=torch.float32) for k,v in data.items()}
+
 """
 def ppo(env_fn, actor_critic=MLPActorCritic, ac_kwargs=dict(), seed=0, 
         steps_per_epoch=4000, epochs=50, gamma=0.99, clip_ratio=0.2, pi_lr=3e-4,
@@ -500,10 +518,13 @@ class Agent(object):
         
         # observe
         env = self.env
+        ac = self.ac
         
         obs = self._get_observation()
-        ac = self.ac
-        a, v, logp = ac.step(torch.as_tensor(obs, dtype=torch.float32))
+        obs_tensor = torch.as_tensor(obs, dtype=torch.float32)
+        if ac.use_cuda:
+            obs_tensor = obs_tensor.cuda()
+        a, v, logp = ac.step(obs_tensor)
         
         #self.env.set_action(np.random.randint(0, 4, self.num_players))
         self.env.set_action(a)
@@ -541,7 +562,10 @@ class Agent(object):
         ac = self.ac
         buf = self.buf
         obs = self._get_observation()
-        _, v, _ = ac.step(torch.as_tensor(obs, dtype=torch.float32))
+        obs_tensor = torch.as_tensor(obs, dtype=torch.float32)
+        if ac.use_cuda:
+            obs_tensor = obs_tensor.cuda()
+        _, v, _ = ac.step(obs_tensor)
         buf.finish_path(v)
         data = buf.get()
         network_update(ac, data, self.pi_optim, self.vf_optim)

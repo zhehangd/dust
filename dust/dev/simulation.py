@@ -38,7 +38,7 @@ class SimulationDemo(object):
         while True:
             
             # Agents observe the environment and take action
-            with utils.Timer(time_table, 'agent'):
+            with utils.Timer(time_table, 'agent1'):
                 self.agent.act()
             
             # Environment evolves
@@ -47,7 +47,7 @@ class SimulationDemo(object):
             
             # Agents get the feedback from the environment
             # and update themselves
-            with utils.Timer(time_table, 'agent'):
+            with utils.Timer(time_table, 'agent2'):
                 self.agent.update()
             
             # Display the current status
