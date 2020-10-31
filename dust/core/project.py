@@ -34,6 +34,9 @@ class Project(object):
         args = _ARG_PARSER.parse_args(args)
         self.time_tag = datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S')
         self.args = args
+        self.proj_name = ''
+        self.proj_dir = ''
+        
     
     def _parse_proj_dir(self):
         """ Determines the project dir
