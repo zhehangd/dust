@@ -63,8 +63,9 @@ class Env(object):
         #player_coords = empty_coords[_NUM_FOODS:_NUM_FOODS+_NUM_PLAYERS]
         
         food_coords = np.array([16,  22,  60,  78,  95, 111, 127])
-        player_coords = np.array([10])
+        #player_coords = np.array([10])
         #player_coords = np.array([97])
+        player_coords = np.array([88])
         
         self.map_shape = (w, h)
         
