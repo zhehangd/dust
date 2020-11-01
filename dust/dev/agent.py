@@ -259,7 +259,10 @@ def network_update(ac, data, pi_optim, vf_optim):
                     DeltaLossPi=(loss_pi.item() - pi_l_old),
                     DeltaLossV=(loss_v.item() - v_l_old))
 
+_EPOCH_LENGTH = 200
+
 class Agent(object):
+    
     def __init__(self, env, is_training):
         self.env = env
         self.num_players = 1
@@ -279,7 +282,7 @@ class Agent(object):
             act_dim = 4
             gamma = 0.999
             lam = 0.97
-            buf = PPOBuffer(obs_dim, 1, env.ticks_per_epoch, gamma, lam)
+            buf = PPOBuffer(obs_dim, 1, _EPOCH_LENGTH, gamma, lam)
             self.buf = buf
             
             pi_lr = 3e-4
@@ -289,6 +292,10 @@ class Agent(object):
             self.pi_optim = pi_optim
             self.vf_optim = vf_optim
             self.progress = progress_log.ProgressLog()
+            
+        self.curr_epoch_tick = 0
+        self.curr_epoch = 0
+        self.epoch_reward = 0 # reward collected in the epoch (NOT round)
     
     def _get_observation(self):
         """ Extract observation from the current env
@@ -323,48 +330,65 @@ class Agent(object):
         #self.env.set_action(np.random.randint(0, 4, self.num_players))
         self.env.set_action(a)
         self.ac_data = (a, v, logp, obs)
-        #logging.info('act: {}'.format(env.curr_epoch_tick))
+        #logging.info('act: {}'.format(env.curr_round_tick))
 
     def update(self):
         # collect rewards
         env = self.env
-        reward = env.tick_reward
-        assert env.curr_epoch_tick < env.ticks_per_epoch, \
-            '{} {} {} {} {}'.format(env.curr_epoch_tick, env.ticks_per_epoch,
-                                    env.curr_tick, env.curr_epoch, env.epoch_end)
-        if self.training:
-            self._push_tick_training_data()
-            if env.epoch_end == True:
-                self.progress.set_fields(epoch=env.curr_epoch, score=env.epoch_score)
-                self.progress.finish_line()
-                self._push_epoch_training_data()
-                if env.curr_epoch % 10 == 0:
-                    self._save_actor_critic()
-            
-        #logging.info('update: {}'.format(env.curr_epoch_tick))
         
-    def _push_tick_training_data(self):
+        self.epoch_reward += env.tick_reward
+        
+        status_msg = 'tick: {} round: {} round_tick: {} ' \
+                     'epoch: {} epoch_tick: {} epoch_reward: {} round_reward: {}'.format(
+                        env.curr_tick, env.curr_round,
+                        env.curr_round_tick, self.curr_epoch,
+                        self.curr_epoch_tick, self.epoch_reward, env.round_reward)
+        
+        if self.training:
+            self._update_tick()
+            end_of_epoch = self.curr_epoch_tick + 1 == _EPOCH_LENGTH
+            
+            if env.end_of_round or end_of_epoch:
+                logging.info('end_of_round: ' + status_msg)
+                self._update_round()
+                
+            if end_of_epoch:
+                logging.info('end_of_epoch')
+                self.progress.set_fields(epoch=self.curr_epoch, score=self.epoch_reward)
+                self.progress.finish_line()
+                self._update_epoch()
+                
+                # Force env to end the round
+                env.end_of_round = True
+            
+                if self.curr_epoch % 10 == 0:
+                    logging.info('save actor critic')
+                    self._save_actor_critic()
+                
+                self.curr_epoch += 1
+                self.curr_epoch_tick = 0
+                self.epoch_reward = 0
+            else:
+                self.curr_epoch_tick += 1
+    
+    def _update_tick(self):
         a, v, logp, obs = self.ac_data
         r = self.env.tick_reward
         ac = self.ac
         buf = self.buf
         buf.store(obs, a, r, v, logp)
     
-    def _push_epoch_training_data(self):
-        # This is the last tick of the epoch, so we evaluate the the
-        # value function and end the buffer
-        ac = self.ac
-        buf = self.buf
+    def _update_round(self):
         obs = self._get_observation()
         obs_tensor = torch.as_tensor(obs, dtype=torch.float32)
-        if ac.use_cuda:
+        if self.ac.use_cuda:
             obs_tensor = obs_tensor.cuda()
-        _, v, _ = ac.step(obs_tensor)
-        buf.finish_path(v)
-        data = buf.get()
-        network_update(ac, data, self.pi_optim, self.vf_optim)
-        env = self.env
-        assert env.curr_epoch_tick == env.ticks_per_epoch - 1
+        _, v, _ = self.ac.step(obs_tensor)
+        self.buf.finish_path(v)
+        
+    def _update_epoch(self):
+        data = self.buf.get()
+        network_update(self.ac, data, self.pi_optim, self.vf_optim)
     
     def _save_actor_critic(self):
         proj = _dust.project()

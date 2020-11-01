@@ -13,7 +13,7 @@ _TYPE_WALL = 1
 
 _REWARD_FOOD = 50
 
-_MAX_TICKS_PER_EPOCH = 100
+_MAX_TICKS_PER_ROUND = 100
 
 # Coordinte system:
 # The *coordinates* of a position is represented by (xi, yi), where xi and
@@ -38,11 +38,11 @@ class Env(object):
         self.curr_tick = 0
         
         # Epoch number
-        self.curr_epoch = 0
+        self.curr_round = 0
         
-        self.new_epoch()
+        self.new_round()
         
-    def new_epoch(self):
+    def new_round(self):
         global _MAP_WIDTH, _MAP_HEIGHT, _MAP_SIZE, _MAP_ELEMS
         global _NUM_WALLS, _NUM_FOODS, _NUM_PLAYERS
         
@@ -64,6 +64,7 @@ class Env(object):
         
         food_coords = np.array([16,  22,  60,  78,  95, 111, 127])
         player_coords = np.array([10])
+        #player_coords = np.array([97])
         
         self.map_shape = (w, h)
         
@@ -73,18 +74,20 @@ class Env(object):
         self.move_count = np.zeros(_MAP_ELEMS, dtype=int)
         
         self.tick_reward = 0
-        self.epoch_score = 0
-        self.epoch_reward = 0
+        self.round_reward = 0
         
         # Epoch tick reset every epoch
-        self.curr_epoch_tick = 0
+        self.curr_round_tick = 0
         
-        # True after the environment evolves to the
-        # termination state, and is reset in the subsequent
-        # next phase
-        self.epoch_end = False
         
-        self.ticks_per_epoch = _MAX_TICKS_PER_EPOCH
+        # Flag indicating a round is ended.
+        # This flag is refreshed by 'evolve' every tick.
+        # 'next_tick' checks this flag and resets the environment if true.
+        # One may manually set this flag between 'evolve' and 'next_tick'
+        # to trigger the resetting.
+        self.end_of_round = False
+        
+        self.ticks_per_round = _MAX_TICKS_PER_ROUND
         
         # Next action for each player
         # Filled by agents between steps
@@ -116,31 +119,27 @@ class Env(object):
         #self.tick_reward -= np.sum(np.maximum(0, self.move_count[self.player_coords] - 2))
         self.tick_reward -= num_colision
         
-        assert self.curr_epoch_tick <= _MAX_TICKS_PER_EPOCH - 1
-        if self.curr_epoch_tick == _MAX_TICKS_PER_EPOCH - 1:
-            self.epoch_end = True
+        assert self.curr_round_tick <= _MAX_TICKS_PER_ROUND - 1
+        if self.curr_round_tick == _MAX_TICKS_PER_ROUND - 1:
+            self.end_of_round = True
             
         if self.player_coords[0] == 78:
-            self.epoch_end = True
+            self.end_of_round = True
             self.tick_reward += 200
         
         #logging.info(self.tick_reward)
-        self.epoch_reward += self.tick_reward
-        self.epoch_score += self.tick_reward
-        
-        #logging.info('evolve: {}'.format(self.curr_epoch_tick))
-        return self.epoch_score
+        self.round_reward += self.tick_reward
     
     def next_tick(self):
         """ Ends the current tick and moves to the next one
         """
         self.curr_tick += 1 
-        self.curr_epoch_tick += 1
+        self.curr_round_tick += 1
         self._reset_action()
-        if self.epoch_end == True:
-            self.new_epoch()
-            self.curr_epoch += 1
-        #logging.info('next_tick: {}'.format(self.curr_epoch_tick))
+        if self.end_of_round == True:
+            self.new_round()
+            self.curr_round += 1
+        #logging.info('next_tick: {}'.format(self.curr_round_tick))
     
     def set_action(self, action):
         """ Temp function used by agents to set actions

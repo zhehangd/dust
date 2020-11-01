@@ -8,7 +8,7 @@ class ProgressLog(object):
     def __init__(self):
         if _dust.inside_project():
             proj = _dust.project()
-            progress_filename = '{}/progress/{}.progress.txt'.format(
+            progress_filename = '{}/logs/progress.{}.txt'.format(
                 proj.proj_dir, proj.time_tag)
             os.makedirs(os.path.dirname(progress_filename), exist_ok=True)
             self._file = open(progress_filename, 'w')
