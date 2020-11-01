@@ -32,7 +32,6 @@ if __name__ == '__main__':
     progress_df = pd.read_table(progress_file)
 
     def smooth_data(x, smooth):
-        x = np.asarray(progress_df['score'])
         w = np.ones(smooth, np.float)
         y = np.convolve(x,w,'same') / smooth
         return y
