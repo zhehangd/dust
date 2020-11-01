@@ -7,10 +7,6 @@ _MAP_HEIGHT = 9
 _MAP_SIZE = (_MAP_WIDTH, _MAP_HEIGHT)
 _MAP_ELEMS = _MAP_WIDTH * _MAP_HEIGHT
 
-_NUM_WALLS = _MAP_ELEMS // 8
-_NUM_FOODS = 5
-_NUM_PLAYERS = 1 # NOTE: current implementation does not support #player > 1
-
 _MOVE_LUT = np.array([_MAP_HEIGHT, 1, -_MAP_HEIGHT, -1])
 
 _TYPE_WALL = 1
@@ -50,24 +46,24 @@ class Env(object):
         global _MAP_WIDTH, _MAP_HEIGHT, _MAP_SIZE, _MAP_ELEMS
         global _NUM_WALLS, _NUM_FOODS, _NUM_PLAYERS
         
-        num_objs = np.array([_NUM_WALLS, _NUM_FOODS, _NUM_PLAYERS])
-        num_objs_cumsum = np.cumsum(num_objs)
-        
         # Generate random coords in the plane except for the edges
         w = _MAP_WIDTH
         h = _MAP_HEIGHT
         
-        map_descr = '111111111100000001101101101100000101'\
-                    '111010001100011011100010001101010001'\
-                    '101000111101010101100000001100111011'\
-                    '101100001101001101100000001111111111'
+        map_descr = '111111111''100000001''101101101''100111001' \
+                    '110000011''111101111''100000011''101101111' \
+                    '100101001''110111101''100000101''100000101' \
+                    '100000101''100000101''100000001''111111111'
         map_descr = np.array(list(map_descr), dtype=np.int)
         wall_coords = np.where(map_descr == 1)[0]
-        empty_coords = np.where(map_descr == 0)[0]
-        np.random.shuffle(empty_coords)
+        #empty_coords = np.where(map_descr == 0)[0]
+        #np.random.shuffle(empty_coords)
         
-        food_coords = empty_coords[:_NUM_FOODS]
-        player_coords = empty_coords[_NUM_FOODS:_NUM_FOODS+_NUM_PLAYERS]
+        #food_coords = empty_coords[:_NUM_FOODS]
+        #player_coords = empty_coords[_NUM_FOODS:_NUM_FOODS+_NUM_PLAYERS]
+        
+        food_coords = np.array([16,  22,  60,  78,  95, 111, 127])
+        player_coords = np.array([10])
         
         self.map_shape = (w, h)
         
@@ -95,7 +91,7 @@ class Env(object):
         self._reset_action()
     
     def _reset_action(self):
-        self.next_action = np.zeros(_NUM_PLAYERS, dtype='i1')
+        self.next_action = np.zeros(1, dtype='i1')
         
     def evolve(self):
         actions = self.next_action
@@ -120,13 +116,18 @@ class Env(object):
         #self.tick_reward -= np.sum(np.maximum(0, self.move_count[self.player_coords] - 2))
         self.tick_reward -= num_colision
         
+        assert self.curr_epoch_tick <= _MAX_TICKS_PER_EPOCH - 1
+        if self.curr_epoch_tick == _MAX_TICKS_PER_EPOCH - 1:
+            self.epoch_end = True
+            
+        if self.player_coords[0] == 78:
+            self.epoch_end = True
+            self.tick_reward += 200
+        
         #logging.info(self.tick_reward)
         self.epoch_reward += self.tick_reward
         self.epoch_score += self.tick_reward
         
-        assert self.curr_epoch_tick <= _MAX_TICKS_PER_EPOCH - 1
-        if self.curr_epoch_tick == _MAX_TICKS_PER_EPOCH - 1:
-            self.epoch_end = True
         #logging.info('evolve: {}'.format(self.curr_epoch_tick))
         return self.epoch_score
     
