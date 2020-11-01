@@ -218,7 +218,7 @@ def compute_loss_v(ac, data):
     obs, ret = data['obs'], data['ret']
     return ((ac.v(obs) - ret)**2).mean()
 
-def network_update(ac, data, pi_optim, vf_optim):
+def network_update(ac, data, pi_optim, vf_optim, progress):
     train_v_iters = 80
     train_pi_iters = 80
     target_kl = 0.01
@@ -254,10 +254,10 @@ def network_update(ac, data, pi_optim, vf_optim):
 
     # Log changes from update
     kl, ent, cf = pi_info['kl'], pi_info_old['ent'], pi_info['cf']
-    log_dict = dict(LossPi=pi_l_old, LossV=v_l_old,
-                    KL=kl, Entropy=ent, ClipFrac=cf,
-                    DeltaLossPi=(loss_pi.item() - pi_l_old),
-                    DeltaLossV=(loss_v.item() - v_l_old))
+    progress.set_fields(LossPi=pi_l_old, LossV=v_l_old,
+                             KL=kl, Entropy=ent, ClipFrac=cf,
+                             DeltaLossPi=(loss_pi.item() - pi_l_old),
+                             DeltaLossV=(loss_v.item() - v_l_old))
 
 _EPOCH_LENGTH = 200
 
@@ -355,8 +355,8 @@ class Agent(object):
             if end_of_epoch:
                 logging.info('end_of_epoch')
                 self.progress.set_fields(epoch=self.curr_epoch, score=self.epoch_reward)
-                self.progress.finish_line()
                 self._update_epoch()
+                self.progress.finish_line()
                 
                 # Force env to end the round
                 env.end_of_round = True
@@ -388,7 +388,7 @@ class Agent(object):
         
     def _update_epoch(self):
         data = self.buf.get()
-        network_update(self.ac, data, self.pi_optim, self.vf_optim)
+        network_update(self.ac, data, self.pi_optim, self.vf_optim, self.progress)
     
     def _save_actor_critic(self):
         proj = _dust.project()
