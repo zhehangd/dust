@@ -80,6 +80,7 @@ class Env(object):
         # Epoch tick reset every epoch
         self.curr_round_tick = 0
         
+        self.num_round_collisions = 0
         
         # Flag indicating a round is ended.
         # This flag is refreshed by 'evolve' every tick.
@@ -104,7 +105,8 @@ class Env(object):
         move_success = np.isin(move_coords, self.wall_coords,
                                assume_unique=True, invert=True)
         
-        num_colision = np.count_nonzero(np.logical_not(move_success))
+        num_collision = np.count_nonzero(np.logical_not(move_success))
+        self.num_round_collisions += num_collision
         
         self.player_coords[move_success] = move_coords[move_success]
         
@@ -118,7 +120,7 @@ class Env(object):
         self.tick_reward = 0
         self.tick_reward += _REWARD_FOOD * num_obtained_foods
         #self.tick_reward -= np.sum(np.maximum(0, self.move_count[self.player_coords] - 2))
-        self.tick_reward -= num_colision
+        self.tick_reward -= num_collision
         
         assert self.curr_round_tick <= _MAX_TICKS_PER_ROUND - 1
         if self.curr_round_tick == _MAX_TICKS_PER_ROUND - 1:
@@ -126,7 +128,11 @@ class Env(object):
             
         if self.player_coords[0] == 78:
             self.end_of_round = True
-            self.tick_reward += 200
+            self.tick_reward += round(200 * (1.0 - float(self.curr_round_tick)/_MAX_TICKS_PER_ROUND))
+        
+        if self.player_coords[0] == (127+4):
+            self.end_of_round = True
+            self.tick_reward -= 200
         
         #logging.info(self.tick_reward)
         self.round_reward += self.tick_reward

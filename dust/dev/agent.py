@@ -47,6 +47,7 @@ class Agent(object):
         self.curr_epoch_tick = 0
         self.curr_epoch = 0
         self.epoch_reward = 0 # reward collected in the epoch (NOT round)
+        self.num_epoch_collisions = 0
     
     def _get_observation(self):
         """ Extract observation from the current env
@@ -89,10 +90,11 @@ class Agent(object):
         self.epoch_reward += env.tick_reward
         
         status_msg = 'tick: {} round: {} round_tick: {} ' \
-                     'epoch: {} epoch_tick: {} epoch_reward: {} round_reward: {}'.format(
+                     'epoch: {} epoch_tick: {} epoch_reward: {} round_reward: {} num_collisions: {}'.format(
                         env.curr_tick, env.curr_round,
                         env.curr_round_tick, self.curr_epoch,
-                        self.curr_epoch_tick, self.epoch_reward, env.round_reward)
+                        self.curr_epoch_tick, self.epoch_reward, env.round_reward,
+                        env.num_round_collisions)
         
         if self.training:
             self._update_tick()
@@ -100,16 +102,20 @@ class Agent(object):
             
             if env.end_of_round or end_of_epoch:
                 logging.info('end_of_round: ' + status_msg)
+                env.end_of_round = True # Force env to end the round
                 self._update_round()
+                self.num_epoch_collisions += env.num_round_collisions
                 
             if end_of_epoch:
                 logging.info('end_of_epoch')
                 self.progress.set_fields(epoch=self.curr_epoch, score=self.epoch_reward)
+                self.progress.set_fields(NumCollisions=self.num_epoch_collisions)
+                self.num_epoch_collisions = 0
                 self._update_epoch()
                 self.progress.finish_line()
                 
-                # Force env to end the round
-                env.end_of_round = True
+                
+                
             
                 if self.curr_epoch % 10 == 0:
                     logging.info('save actor critic')
