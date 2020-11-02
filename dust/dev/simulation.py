@@ -6,7 +6,8 @@ import numpy as np
 from dust import _dust
 from dust.utils import utils
 from dust.dev import agent
-from dust.dev import simple as env_simple
+from dust.core.env import BaseEnv
+from dust.envs import env01 as env_simple 
 
 _argparser = _dust.argparser()
 
@@ -16,10 +17,15 @@ _argparser.add_argument('--timing_ticks', type=int, default=10000,
 class SimulationDemo(object):
     
     def __init__(self, is_training):
+        
         self.env = env_simple.Env()
+        self.env.new_environment()
+        
         self.disp = env_simple.Disp(self.env)
         self.agent = agent.Agent(self.env, is_training)
         self.is_training = is_training
+        
+        
     
     def start(self):
         """ Start a playing session
@@ -34,6 +40,10 @@ class SimulationDemo(object):
         
         time_count = 0
         time_table = {}
+        
+        assert isinstance(self.env, BaseEnv)
+        
+        
          
         while True:
             

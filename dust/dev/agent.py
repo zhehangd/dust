@@ -24,6 +24,18 @@ _argparser.add_argument('--cuda', action='store_true',
 
 _EPOCH_LENGTH = 200
 
+class Env00Stub(object):
+    
+    def __init__(self):
+        self.obs_dim = 3
+        self.act_dim = 2
+        
+class Env01Stub(object):
+    
+    def __init__(self):
+        self.obs_dim = 25
+        self.act_dim = 4
+
 class Agent(object):
     
     def __init__(self, env, is_training):

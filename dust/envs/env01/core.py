@@ -2,6 +2,8 @@ import logging
 
 import numpy as np
 
+from dust.core.env import BaseEnv
+
 _MAP_WIDTH = 16
 _MAP_HEIGHT = 9
 _MAP_SIZE = (_MAP_WIDTH, _MAP_HEIGHT)
@@ -23,7 +25,7 @@ _MAX_TICKS_PER_ROUND = 100
 # The *index* of a position is defined as xi * H + yi, which is used to
 # access the elements of a flattened array.
 
-class Env(object):
+class Env(BaseEnv):
     
     """
     
@@ -33,16 +35,10 @@ class Env(object):
     """
     
     def __init__(self):
+        super().__init__()
         
-        # Tick since the very beginning of the environment
-        self.curr_tick = 0
+    def _create_new_round(self):
         
-        # Epoch number
-        self.curr_round = 0
-        
-        self.new_round()
-        
-    def new_round(self):
         global _MAP_WIDTH, _MAP_HEIGHT, _MAP_SIZE, _MAP_ELEMS
         global _NUM_WALLS, _NUM_FOODS, _NUM_PLAYERS
         
@@ -136,17 +132,6 @@ class Env(object):
         
         #logging.info(self.tick_reward)
         self.round_reward += self.tick_reward
-    
-    def next_tick(self):
-        """ Ends the current tick and moves to the next one
-        """
-        self.curr_tick += 1 
-        self.curr_round_tick += 1
-        self._reset_action()
-        if self.end_of_round == True:
-            self.new_round()
-            self.curr_round += 1
-        #logging.info('next_tick: {}'.format(self.curr_round_tick))
     
     def set_action(self, action):
         """ Temp function used by agents to set actions
