@@ -7,7 +7,7 @@ from dust import _dust
 from dust.utils import utils
 from dust.dev import agent
 from dust.core.env import BaseEnv
-from dust.envs import env01 as env_simple 
+from dust.envs import env00 as env_simple 
 
 _argparser = _dust.argparser()
 

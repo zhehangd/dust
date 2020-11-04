@@ -55,9 +55,9 @@ class BaseEnv(object):
         """
         """
         self._evolve_tick()
+        self.round_reward += self.tick_reward
     
     def next_tick(self):
-        self.round_reward += self.tick_reward
         self.tick_reward = 0
         self.curr_tick += 1
         self.curr_round_tick += 1

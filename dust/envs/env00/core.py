@@ -7,7 +7,7 @@ from dust.core.env import BaseEnv
 # Transition
 #    X    Y    Z
 # L  Y    B    G
-# R  G    Z    B
+# R  B    Z    B
 #
 
 class Env(BaseEnv):
@@ -20,7 +20,7 @@ class Env(BaseEnv):
     """
     
     def __init__(self):
-        pass
+        super().__init__()
 
     def _create_new_round(self):
         
@@ -29,7 +29,7 @@ class Env(BaseEnv):
         self.action = 'L'
        
         self.lut = {
-            'X': {'L': 'Y', 'R': 'G'},
+            'X': {'L': 'Y', 'R': 'B'},
             'Y': {'L': 'B', 'R': 'Z'},
             'Z': {'L': 'G', 'R': 'B'},
         }

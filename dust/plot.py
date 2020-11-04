@@ -17,7 +17,7 @@ _argparser.add_argument('--x', type=str, default='epoch',
 _argparser.add_argument('--y', type=str, default='score',
                         help='Field for y-axis')
 
-_argparser.add_argument('--smooth', type=int, default=2000,
+_argparser.add_argument('--smooth', type=int, default=0,
                         help='Smoothing filter size')
 
 

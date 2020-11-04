@@ -88,7 +88,7 @@ class PPOBuffer:
 
 class Context(object):
     
-    def __init__(self, obs_dim, act_dim, buf_len):
+    def __init__(self, obs_dim, act_dim, net_size, buf_len):
         gamma = 0.999
         lam = 0.97
         pi_lr=3e-4
@@ -99,7 +99,7 @@ class Context(object):
         
         observation_space = Box(-1, 1, shape=(obs_dim,), dtype=np.float32)
         action_space = Discrete(act_dim)
-        self.ac = MLPActorCritic(observation_space, action_space, hidden_sizes=(16,16))
+        self.ac = MLPActorCritic(observation_space, action_space, hidden_sizes=net_size)
         self.buf = PPOBuffer(obs_dim, 1, buf_len, gamma, lam)
         # Set up optimizers for policy and value function
         self.pi_optimizer = Adam(self.ac.pi.parameters(), lr=pi_lr)
