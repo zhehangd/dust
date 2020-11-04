@@ -9,6 +9,10 @@ class BaseEnv(object):
     
     def __init__(self):
         
+        # --------------- Attributes for Read-only -----------
+        # They represent the state of the environment for users to check. 
+        # Do NOT modify them.
+        
         # Tick number since the beginning of the simulation
         self.curr_tick = 0
         
@@ -18,22 +22,23 @@ class BaseEnv(object):
         # Round number
         self.curr_round = 0
         
-        self.obs_dim = 3
+        # 
+        self.tick_reward = 0
         
-        self.act_dim = 2
+        self.round_reward = 0
         
+        # ----------------- Interactive attributes ----------------
+        # These attributes are open to read and write in certain conditions
+        # to interact with the environment.
+
         # Flag indicating a round is ended.
         # Refreshed by 'evolve' every tick.
         # 'next_tick' checks this flag and resets the environment if true.
         # One may manually set this flag between 'evolve' and 'next_tick'
         # to trigger the resetting.
         self.end_of_round = False
-        
-        # 
-        self.tick_reward = 0
-        
-        self.round_reward = 0
-    
+
+
     def new_environment(self):
         """ Creates a new environment.
         """
@@ -48,15 +53,18 @@ class BaseEnv(object):
     
     def evolve(self):
         """
-        Inherited class should implement this
         """
-        raise NotImplementedError()
+        self._evolve_tick()
     
     def next_tick(self):
+        self.round_reward += self.tick_reward
+        self.tick_reward = 0
         self.curr_tick += 1
         self.curr_round_tick += 1
         if self.end_of_round:
             self.end_of_round = False
+            self.round_reward = 0
+            self.curr_round_tick = 0
             self.curr_round += 1
             self._create_new_round()
  
@@ -65,3 +73,10 @@ class BaseEnv(object):
         Inherited class should implement this
         """
         raise NotImplementedError()
+    
+    def _evolve_tick(self):
+        """
+        Inherited class should implement this
+        """
+
+

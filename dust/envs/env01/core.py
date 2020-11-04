@@ -39,9 +39,6 @@ class Env(BaseEnv):
         
     def _create_new_round(self):
         
-        global _MAP_WIDTH, _MAP_HEIGHT, _MAP_SIZE, _MAP_ELEMS
-        global _NUM_WALLS, _NUM_FOODS, _NUM_PLAYERS
-        
         # Generate random coords in the plane except for the edges
         w = _MAP_WIDTH
         h = _MAP_HEIGHT
@@ -52,16 +49,11 @@ class Env(BaseEnv):
                     '100000101''100000101''100000001''111111111'
         map_descr = np.array(list(map_descr), dtype=np.int)
         wall_coords = np.where(map_descr == 1)[0]
-        #empty_coords = np.where(map_descr == 0)[0]
-        #np.random.shuffle(empty_coords)
-        
-        #food_coords = empty_coords[:_NUM_FOODS]
-        #player_coords = empty_coords[_NUM_FOODS:_NUM_FOODS+_NUM_PLAYERS]
         
         food_coords = np.array([16,  22,  60,  78,  95, 111, 127])
-        #player_coords = np.array([10])
-        #player_coords = np.array([97])
-        player_coords = np.array([88])
+        #player_coords = np.array([10]) # ordinary start
+        #player_coords = np.array([97]) # right next to the final goal
+        player_coords = np.array([88])  # somewhere near the final goal
         
         self.map_shape = (w, h)
         
@@ -70,31 +62,15 @@ class Env(BaseEnv):
         self.food_coords = food_coords
         self.move_count = np.zeros(_MAP_ELEMS, dtype=int)
         
-        self.tick_reward = 0
-        self.round_reward = 0
-        
-        # Epoch tick reset every epoch
-        self.curr_round_tick = 0
-        
         self.num_round_collisions = 0
-        
-        # Flag indicating a round is ended.
-        # This flag is refreshed by 'evolve' every tick.
-        # 'next_tick' checks this flag and resets the environment if true.
-        # One may manually set this flag between 'evolve' and 'next_tick'
-        # to trigger the resetting.
-        self.end_of_round = False
         
         self.ticks_per_round = _MAX_TICKS_PER_ROUND
         
         # Next action for each player
         # Filled by agents between steps
-        self._reset_action()
-    
-    def _reset_action(self):
         self.next_action = np.zeros(1, dtype='i1')
         
-    def evolve(self):
+    def _evolve_tick(self):
         actions = self.next_action
         move_coords = self.player_coords + _MOVE_LUT[actions]
         
@@ -132,10 +108,5 @@ class Env(BaseEnv):
         
         #logging.info(self.tick_reward)
         self.round_reward += self.tick_reward
-    
-    def set_action(self, action):
-        """ Temp function used by agents to set actions
-        """
-        self.next_action[:] = action
     
     
