@@ -190,8 +190,8 @@ class Agent(object):
                 self.progress.finish_line()
                 
                 if self.curr_epoch % 10 == 0:
-                    logging.info('save actor critic')
                     _save_actor_critic()
+                    logging.info('saved actor critic')
                 
                 self.curr_epoch += 1
                 self.curr_epoch_tick = 0

@@ -100,7 +100,7 @@ class Context(object):
         observation_space = Box(-1, 1, shape=(obs_dim,), dtype=np.float32)
         action_space = Discrete(act_dim)
         self.ac = MLPActorCritic(observation_space, action_space, hidden_sizes=net_size)
-        self.buf = PPOBuffer(obs_dim, 1, buf_len, gamma, lam)
+        self.buf = PPOBuffer(obs_dim, None, buf_len, gamma, lam)
         # Set up optimizers for policy and value function
         self.pi_optimizer = Adam(self.ac.pi.parameters(), lr=pi_lr)
         self.vf_optimizer = Adam(self.ac.v.parameters(), lr=vf_lr)

@@ -51,9 +51,9 @@ class Env(BaseEnv):
         wall_coords = np.where(map_descr == 1)[0]
         
         food_coords = np.array([16,  22,  60,  78,  95, 111, 127])
-        #player_coords = np.array([10]) # ordinary start
+        player_coords = np.array([10]) # ordinary start
         #player_coords = np.array([97]) # right next to the final goal
-        player_coords = np.array([88])  # somewhere near the final goal
+        #player_coords = np.array([88])  # somewhere near the final goal
         
         self.map_shape = (w, h)
         
@@ -91,7 +91,7 @@ class Env(BaseEnv):
         
         self.tick_reward = 0
         self.tick_reward += _REWARD_FOOD * num_obtained_foods
-        #self.tick_reward -= np.sum(np.maximum(0, self.move_count[self.player_coords] - 2))
+        self.tick_reward -= np.sum(np.maximum(0, self.move_count[self.player_coords] - 2))
         self.tick_reward -= num_collision
         
         assert self.curr_round_tick <= _MAX_TICKS_PER_ROUND - 1
@@ -100,13 +100,13 @@ class Env(BaseEnv):
             
         if self.player_coords[0] == 78:
             self.end_of_round = True
-            self.tick_reward += round(200 * (1.0 - float(self.curr_round_tick)/_MAX_TICKS_PER_ROUND))
+            self.tick_reward += 200
         
         if self.player_coords[0] == (127+4):
             self.end_of_round = True
             self.tick_reward -= 200
         
-        #logging.info(self.tick_reward)
+        #logging.info('r/t reward {}, {}'.format(self.round_reward, self.tick_reward))
         self.round_reward += self.tick_reward
     
     
