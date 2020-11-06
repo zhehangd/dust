@@ -1,15 +1,7 @@
 import numpy as np
 import torch
-from torch.optim import Adam
-import gym
-import time
-import logging
-import spinup.algos.pytorch.ppo.core as core
-from spinup.utils.logx import EpochLogger
 
-from gym.spaces import Box, Discrete
-
-from dust.dev.su_core import MLPActorCritic
+from dust.core import su_core as core
 
 class PPOBuffer:
     """
@@ -85,88 +77,4 @@ class PPOBuffer:
         data = dict(obs=self.obs_buf, act=self.act_buf, ret=self.ret_buf,
                     adv=self.adv_buf, logp=self.logp_buf)
         return {k: torch.as_tensor(v, dtype=torch.float32) for k,v in data.items()}
-
-
-def create_actor_crtic(obs_dim, act_dim):
-
-
-class Context(object):
-    
-    def __init__(self, obs_dim, act_dim, net_size, buf_len):
-        gamma = 0.999
-        lam = 0.97
-        pi_lr=3e-4
-        vf_lr=1e-3
-        self.train_pi_iters=80
-        self.train_v_iters=80
-        self.target_kl=0.01
-        
-        observation_space = Box(-1, 1, shape=(obs_dim,), dtype=np.float32)
-        action_space = Discrete(act_dim)
-        self.ac = MLPActorCritic(observation_space, action_space, hidden_sizes=net_size)
-        self.buf = PPOBuffer(obs_dim, None, buf_len, gamma, lam)
-        # Set up optimizers for policy and value function
-        self.pi_optimizer = Adam(self.ac.pi.parameters(), lr=pi_lr)
-        self.vf_optimizer = Adam(self.ac.v.parameters(), lr=vf_lr)
-        
-    # Set up function for computing PPO policy loss
-    def compute_loss_pi(self, data):
-        obs, act, adv, logp_old = data['obs'], data['act'], data['adv'], data['logp']
-        clip_ratio=0.2
-        # Policy loss
-        pi, logp = self.ac.pi(obs, act)
-        ratio = torch.exp(logp - logp_old)
-        clip_adv = torch.clamp(ratio, 1-clip_ratio, 1+clip_ratio) * adv
-        loss_pi = -(torch.min(ratio * adv, clip_adv)).mean()
-
-        # Useful extra info
-        approx_kl = (logp_old - logp).mean().item()
-        ent = pi.entropy().mean().item()
-        clipped = ratio.gt(1+clip_ratio) | ratio.lt(1-clip_ratio)
-        clipfrac = torch.as_tensor(clipped, dtype=torch.float32).mean().item()
-        pi_info = dict(kl=approx_kl, ent=ent, cf=clipfrac)
-
-        return loss_pi, pi_info
-
-    # Set up function for computing value loss
-    def compute_loss_v(self, data):
-        obs, ret = data['obs'], data['ret']
-        return ((self.ac.v(obs) - ret)**2).mean()
-
-    def update(self, progress):
-        data = self.buf.get()
-
-        pi_l_old, pi_info_old = self.compute_loss_pi(data)
-        pi_l_old = pi_l_old.item()
-        v_l_old = self.compute_loss_v(data).item()
-
-        # Train policy with multiple steps of gradient descent
-        for i in range(self.train_pi_iters):
-            self.pi_optimizer.zero_grad()
-            loss_pi, pi_info = self.compute_loss_pi(data)
-            # NOTE: NO MPI
-            #kl = mpi_avg(pi_info['kl'])
-            kl = pi_info['kl']
-            if kl > 1.5 * self.target_kl:
-                logging.info('Early stopping at step %d due to reaching max kl.'%i)
-                break
-            loss_pi.backward()
-            # NOTE: NO MPI
-            #mpi_avg_grads(ac.pi)    # average grads across MPI processes
-            self.pi_optimizer.step()
-        
-        # Value function learning
-        for i in range(self.train_v_iters):
-            self.vf_optimizer.zero_grad()
-            loss_v = self.compute_loss_v(data)
-            loss_v.backward()
-            # NOTE: NO MPI
-            #mpi_avg_grads(ac.v)    # average grads across MPI processes
-            self.vf_optimizer.step()
-
-        # Log changes from update
-        kl, ent, cf = pi_info['kl'], pi_info_old['ent'], pi_info['cf']
-        progress.set_fields(LossPi=pi_l_old, LossV=v_l_old,
-                            KL=kl, Entropy=ent, ClipFrac=cf,
-                            DeltaLossPi=(loss_pi.item() - pi_l_old),
-                            DeltaLossV=(loss_v.item() - v_l_old))
+ 
