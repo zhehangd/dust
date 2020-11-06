@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 
@@ -8,7 +9,7 @@ from dust.core import project
 from dust.dev import simulation
 
 if __name__ == '__main__':
-    proj = project.load_project()
+    proj = project.load_project('demo')
     sim = simulation.SimulationDemo(False)
     assert sim.agent.pi_model is not None
     assert sim.agent.v_model is not None

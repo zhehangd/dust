@@ -97,7 +97,7 @@ def project():
     assert isinstance(_PROJECT, Project), 'You haven\'t loaded a project.'
     return _PROJECT
 
-def create_project(args=None):
+def create_project(module_name, args=None):
     """ Inits and enters a project
     """
     global _PROJECT
@@ -110,7 +110,7 @@ def create_project(args=None):
     logging.info('Project {} created'.format(proj.proj_name))
     return proj
 
-def load_project(args=None):
+def load_project(module_name, args=None):
     """
     """
     global _PROJECT
@@ -118,14 +118,19 @@ def load_project(args=None):
     proj = Project(args)
     proj.load_project()
     _PROJECT = proj # One may use project() after this line
-    _setup_project_logger() # One may use logging after this line
+    _setup_project_logger(module_name) # One may use logging after this line
     logging.info('Project {} loaded'.format(proj.proj_name))
     return proj
 
-def _setup_project_logger():
+def _setup_project_logger(module_name=None):
     
-    tag = project().time_tag
-    logfile = os.path.join(project().proj_dir, 'logs', '{}.log'.format(tag))
+    time_tag = project().time_tag
+    
+    if module_name:
+        log_filename = 'log.{}.{}.log'.format(module_name, time_tag)
+    else:
+        log_filename = 'log.{}.log'.format(time_tag)
+    log_pathname = os.path.join(project().proj_dir, 'logs', log_filename)
     
     logger = logging.getLogger(None)
     logger.setLevel(logging.INFO)
@@ -138,7 +143,7 @@ def _setup_project_logger():
     logger.addHandler(handler)
 
     # Log to file
-    os.makedirs(os.path.dirname(os.path.abspath(logfile)), exist_ok=True)
-    handler = logging.FileHandler(logfile)
+    os.makedirs(os.path.dirname(os.path.abspath(log_pathname)), exist_ok=True)
+    handler = logging.FileHandler(log_pathname)
     handler.setFormatter(formatter)
     logger.addHandler(handler)

@@ -22,7 +22,7 @@ _argparser.add_argument('--smooth', type=int, default=0,
 
 
 if __name__ == '__main__':
-    proj = project.load_project()
+    proj = project.load_project('plot')
     
     logging.info('Plotting training progress...')
     
