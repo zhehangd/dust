@@ -15,8 +15,9 @@ from dust.core.su_core import create_default_actor_crtic
 from dust.core.ppo_buffer import PPOBuffer
 from dust.core.trainer import Trainer
 
-from dust.envs.env00.core import Env as Env00
-from dust.envs.env01.core import Env as Env01
+# TODO: importing all envs is a bad idea
+#from dust.envs.env00.core import Env as Env00
+#from dust.envs.env01.core import Env as Env01
 
 _argparser = _dust.argparser()
 
@@ -28,7 +29,7 @@ _EPOCH_LENGTH = 200
 class Env00Stub(object):
     
     def __init__(self, env):
-        assert isinstance(env, Env00)
+        #assert isinstance(env, Env00)
         self.env = env
         self.obs_dim = 3
         self.act_dim = 2
@@ -47,7 +48,7 @@ class Env00Stub(object):
 class Env01Stub(object):
     
     def __init__(self, env):
-        assert isinstance(env, Env01)
+        #assert isinstance(env, Env01)
         self.env = env
         self.obs_dim = 25
         self.act_dim = 4
@@ -100,12 +101,14 @@ class Agent(object):
         self.env = env
         self.num_players = 1
         
-        if isinstance(env, Env00):
+        proj = _dust.project()
+        
+        if proj.args.env == 'env00':
             self.env_stub = Env00Stub(env)
-        elif isinstance(env, Env01):
+        elif proj.args.env == 'env01':
             self.env_stub = Env01Stub(env)
         else:
-            raise RuntimeError('Unknown environment '.format(str(env)))
+            raise RuntimeError('Unknown environment '.format(proj.args.env))
         #def count_vars(module):
         #    return sum([np.prod(p.shape) for p in module.parameters()])
         #var_counts = tuple(count_vars(module) for module in [ac.pi, ac.v])

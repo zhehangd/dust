@@ -5,6 +5,8 @@ import logging
 import sys
 import toml
 
+from dust.utils.argparse import Namespace
+
 _PROJECT = None
 
 _PROJECT_FILE = 'project.toml'
@@ -31,12 +33,19 @@ class Project(object):
     """
     
     def __init__(self, args=None):
+      
         args = _ARG_PARSER.parse_args(args)
         self.time_tag = datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S')
         self.args = args
+        
+        # TODO proj_name, proj_dir -> cfg
         self.proj_name = ''
         self.proj_dir = ''
         
+        # TODO: If a project is loaded, updating cli args should be after
+        # loading project config.
+        self.cfg = Namespace()
+        self.cfg.update(args.__dict__)
     
     def _parse_proj_dir(self):
         """ Determines the project dir
@@ -82,10 +91,11 @@ class Project(object):
         )
     
     def save_project(self):
-        global _PROJECT_FILE
+        # temp
+        self.cfg.update(dict(proj_name=self.proj_name))
         proj_file = os.path.join(self.proj_dir, _PROJECT_FILE)
         with open(proj_file, 'w') as f:
-            toml.dump(dict(proj_name = self.proj_name), f)
+            toml.dump(self.cfg.__dict__, f)
 
 def inside_project():
     return isinstance(_PROJECT, Project)
@@ -119,6 +129,9 @@ def load_project(module_name, args=None):
     proj.load_project()
     _PROJECT = proj # One may use project() after this line
     _setup_project_logger(module_name) # One may use logging after this line
+    # HACK: update cli args again to overwrite  
+    proj.cfg.update(proj.args.__dict__)
+    proj.save_project()
     logging.info('Project {} loaded'.format(proj.proj_name))
     return proj
 

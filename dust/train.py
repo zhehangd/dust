@@ -15,7 +15,8 @@ if __name__ == '__main__':
         sim.start()
     except KeyboardInterrupt:
         logging.info('Interrupted by user')
-    finally:
-        logging.info('Abort')
+    #except BaseException as error:
+    #    logging.info('An exception occurred: \n{}'.format(error))
+    #    logging.info('Abort')
     
     logging.info('End')
