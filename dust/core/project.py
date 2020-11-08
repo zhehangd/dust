@@ -116,7 +116,6 @@ def create_project(module_name, args=None):
     proj.init_project()
     _PROJECT = proj # One may use project() after this line
     _setup_project_logger() # One may use logging after this line
-    proj.save_project()
     logging.info('Project {} created'.format(proj.proj_name))
     return proj
 
@@ -131,7 +130,6 @@ def load_project(module_name, args=None):
     _setup_project_logger(module_name) # One may use logging after this line
     # HACK: update cli args again to overwrite  
     proj.cfg.update(proj.args.__dict__)
-    proj.save_project()
     logging.info('Project {} loaded'.format(proj.proj_name))
     return proj
 
