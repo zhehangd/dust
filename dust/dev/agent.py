@@ -208,13 +208,13 @@ class Agent(object):
                                 env.curr_tick, env.curr_round,
                                 env.curr_round_tick, self.curr_epoch,
                                 self.curr_epoch_tick, env.round_reward, avg_round_reward)
-                logging.info('end_of_round: ' + status_msg)
+                logging.info('EOR: ' + status_msg)
                 env.end_of_round = True # Force env to end the round
                 _update_round()
                 self.num_epoch_collisions += 0#env.num_round_collisions
             
             if end_of_epoch:
-                logging.info('end_of_epoch')
+                logging.info('EOE')
                 avg_round_reward = self.epoch_reward / self.epoch_num_rounds
                 self.progress.set_fields(epoch=self.curr_epoch, score=avg_round_reward)
                 
