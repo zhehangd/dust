@@ -11,24 +11,28 @@ from dust.core.env import BaseEnv
 
 _argparser = _dust.argparser()
 
-_argparser.add_argument('--timing_ticks', type=int, default=10000,
-                        help='Number of ticks between each timing')
+_argparser.add_configuration(
+    '--timing_ticks',
+    type=int, default=10000,
+    help='Number of ticks between each timing')
 
-_argparser.add_argument('--env', default='env01',
-                        help='Environment to use')
+_argparser.add_configuration(
+    '--env', 
+    default='env01',
+    help='Environment to use')
 
 class SimulationDemo(object):
     
     def __init__(self, is_training):
         proj = _dust.project()
-        env_module = importlib.import_module('dust.envs.' + proj.args.env + '.core')
+        env_module = importlib.import_module('dust.envs.' + proj.cfg.env + '.core')
         
         
         self.env = env_module.Env()
         self.env.new_environment()
         
         if not is_training:
-            disp_module = importlib.import_module('dust.envs.' + proj.args.env + '.disp')
+            disp_module = importlib.import_module('dust.envs.' + proj.cfg.env + '.disp')
             self.disp = disp_module.Disp(self.env)
         self.agent = agent.Agent(self.env, is_training)
         self.is_training = is_training
@@ -41,7 +45,7 @@ class SimulationDemo(object):
         #env.load(...) or env.init(...)
         
         proj = _dust.project()
-        logging.info('proj.args.timing_ticks={}'.format(proj.args.timing_ticks))
+        logging.info('proj.cfg.timing_ticks={}'.format(proj.cfg.timing_ticks))
         
         if not self.is_training:
             self.disp.render()
@@ -79,8 +83,8 @@ class SimulationDemo(object):
                 time.sleep(0.03)
             
             time_count += 1
-            if time_count % proj.args.timing_ticks == 0:
-                msg = 'Time cost in {} ticks: '.format(proj.args.timing_ticks)
+            if time_count % proj.cfg.timing_ticks == 0:
+                msg = 'Time cost in {} ticks: '.format(proj.cfg.timing_ticks)
                 msg += ' '.join('<{}>: {:<.4}'.format(k, v) \
                     for k, v in time_table.items())
                 logging.info(msg)

@@ -21,7 +21,9 @@ from dust.core.trainer import Trainer
 
 _argparser = _dust.argparser()
 
-_argparser.add_argument('--cuda', action='store_true',
+_argparser.add_configuration(
+    '--cuda',
+    type=bool, default=False,
     help='Use CUDA')
 
 _EPOCH_LENGTH = 200
@@ -103,12 +105,12 @@ class Agent(object):
         
         proj = _dust.project()
         
-        if proj.args.env == 'env00':
+        if proj.cfg.env == 'env00':
             self.env_stub = Env00Stub(env)
-        elif proj.args.env == 'env01':
+        elif proj.cfg.env == 'env01':
             self.env_stub = Env01Stub(env)
         else:
-            raise RuntimeError('Unknown environment '.format(proj.args.env))
+            raise RuntimeError('Unknown environment '.format(proj.cfg.env))
         #def count_vars(module):
         #    return sum([np.prod(p.shape) for p in module.parameters()])
         #var_counts = tuple(count_vars(module) for module in [ac.pi, ac.v])

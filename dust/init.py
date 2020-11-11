@@ -6,7 +6,8 @@ if __name__ == '__main__':
     
     try:
         proj = project.create_project('init')
-        logging.info('Initialize the project')
+        proj.save_project()
+        logging.info('Initialized the project')
     except KeyboardInterrupt:
         logging.info('Interrupted by user')
     #except BaseException as error:
