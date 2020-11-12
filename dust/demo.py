@@ -23,6 +23,7 @@ def demo():
     
     env_core = env_module.create_env()
     assert isinstance(env_core, EnvCore), type(env_core)
+    env_frame = EnvFrame(env_core)
     
     env_ai_stub = env_module.create_ai_stub(env_core)
     assert isinstance(env_ai_stub, EnvAIStub), type(env_ai_stub)
@@ -31,22 +32,24 @@ def demo():
     
     env_disp = env_module.create_disp(env_core, env_ai_stub)
     assert isinstance(env_disp, EnvDisplay), type(env_disp)
+    disp_frame = DispFrame(env_disp)
     
     agent = PrototypeAIEngine(env_core, env_ai_stub, False)
+    ai_frame = AIFrame(agent)
     assert agent.pi_model is not None
     assert agent.v_model is not None
     net_data = torch.load(os.path.join(proj.proj_dir, 'network.pth'))
     agent.pi_model = net_data['pi_model']
     agent.v_model = net_data['v_model']
     
-    env_disp.init()
-    env_disp.render()
+    disp_frame.init()
+    disp_frame.render()
     while True:
-        agent.act()
-        env_core.evolve()
-        agent.update()
-        env_disp.render()
-        env_core.next_tick()
+        ai_frame.perceive_and_act()
+        env_frame.evolve()
+        ai_frame.update()
+        disp_frame.render()
+        env_frame.update()
         time.sleep(0.03)
 
 if __name__ == '__main__':

@@ -1,49 +1,38 @@
-
-
-env = create_env("env01")
-
-f_env = EnvFrame(env.core)
-f_ai = AIFrame(env.ai_stub)
-f_disp = DispFrame(f_env, f_ai)
-
-disp.render()
-while True:
-    
-    f_ai.perceive_and_act()
-    
-    f_env.evolve()
-    
-    f_ai.update()
-    
-    f_env.next_tick()
-
-
 class EnvFrame(object):
     
-    def __init__(self):
-        pass
+    def __init__(self, env_core):
+        self.env_core = env_core
     
     def evolve(self):
-        pass
+        self.env_core.evolve()
     
     def update(self):
-        pass
+        self.env_core.next_tick()
 
 class AIFrame(object):
     """ Entrypoint of AI system
     """
     
-    def __init__(self, env):
-        pass
+    def __init__(self, ai_engine):
+        self.ai_engine = ai_engine
     
     def perceive_and_act(self):
         """ Perceives the environment and takes action
         """
-        pass
+        self.ai_engine.act()
 
     def update(self):
         """ Receives environment feedback and updates AI
         """
-        pass
+        self.ai_engine.update()
 
+class DispFrame(object):
     
+    def __init__(self, env_disp):
+        self.env_disp = env_disp
+    
+    def init(self):
+        self.env_disp.init()
+    
+    def render(self):
+        self.env_disp.render()
