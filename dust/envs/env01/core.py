@@ -2,7 +2,7 @@ import logging
 
 import numpy as np
 
-from dust.core.env import BaseEnv
+from dust.core.env import EnvCore
 
 _MAP_WIDTH = 16
 _MAP_HEIGHT = 9
@@ -25,7 +25,7 @@ _MAX_TICKS_PER_ROUND = 100
 # The *index* of a position is defined as xi * H + yi, which is used to
 # access the elements of a flattened array.
 
-class Env(BaseEnv):
+class Env(EnvCore):
     
     """
     

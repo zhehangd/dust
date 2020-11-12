@@ -1,6 +1,6 @@
 import logging
 
-class BaseEnv(object):
+class EnvCore(object):
     """
     A subclass should implement 
     _create_new_round
@@ -79,4 +79,24 @@ class BaseEnv(object):
         Inherited class should implement this
         """
 
+class EnvAIStub(object):
+    
+    def __init__(self, env):
+        pass
+    
+    def get_observation(self):
+        raise NotImplementedError()
+    
+    def set_action(self, a):
+        raise NotImplementedError()
 
+class EnvDisplay(object):
+    
+    def __init__(self):
+        pass
+    
+    def init(self):
+        pass
+    
+    def render(self):
+        pass

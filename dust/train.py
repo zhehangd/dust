@@ -9,7 +9,7 @@ from dust.core import project
 from dust import _dust
 from dust.utils import utils
 from dust.dev.agent import Agent
-from dust.core.env import BaseEnv
+from dust.core.env import EnvCore, EnvAIStub, EnvDisplay
 
 _argparser = _dust.argparser()
 
@@ -50,14 +50,20 @@ class SimTimer(object):
 
 def train():
     proj = _dust.project()
-    env_module = importlib.import_module(
-        'dust.envs.' + proj.cfg.env + '.core')
     
-    env = env_module.Env()
-    env.new_environment()
-    assert isinstance(env, BaseEnv)
+    env_name = proj.cfg.env
+    env_module = importlib.import_module('dust.envs.' + env_name)
     
-    agent = Agent(env, True)
+    env_core = env_module.create_env()
+    assert isinstance(env_core, EnvCore), type(env_core)
+    
+    env_ai_stub = env_module.create_ai_stub(env_core)
+    assert isinstance(env_ai_stub, EnvAIStub), type(env_ai_stub)
+    
+    # TODO: put in constructor?
+    env_core.new_environment()
+    
+    agent = Agent(env_core, env_ai_stub, True)
     
     t = SimTimer(0)
     
@@ -69,7 +75,7 @@ def train():
         
         # Environment evolves
         with t.section('env-evolve'):
-            env.evolve()
+            env_core.evolve()
         
         # Agents get the feedback from the environment
         # and update themselves
@@ -79,7 +85,7 @@ def train():
         # Environment update its data and move to the
         # state of the next tick
         with t.section('env-nexttick'):
-            env.next_tick()
+            env_core.next_tick()
         
         t.finish_iteration()
         if t.time_count >= proj.cfg.timing_ticks:

@@ -28,53 +28,6 @@ _argparser.add_configuration(
 
 _EPOCH_LENGTH = 200
 
-class Env00Stub(object):
-    
-    def __init__(self, env):
-        #assert isinstance(env, Env00)
-        self.env = env
-        self.obs_dim = 3
-        self.act_dim = 2
-        self.net_size = (3,3)
-    
-    def get_observation(self):
-        state_v = np.zeros(self.obs_dim, np.float32)
-        i = ord(self.env.state) - ord('X')
-        assert i >= 0 and i < 4, 'state {}'.format(self.env.state)
-        state_v[i]
-        return state_v
-    
-    def set_action(self, a):
-        self.env.action = 'LR'[a]
-
-class Env01Stub(object):
-    
-    def __init__(self, env):
-        #assert isinstance(env, Env01)
-        self.env = env
-        self.obs_dim = 25
-        self.act_dim = 4
-        self.net_size = (16,16)
-
-    def get_observation(self):
-        """ Extract observation from the current env
-        """
-        def index_to_coords(idxs, h):
-            return np.stack((idxs // h, idxs % h), -1)
-        env = self.env
-        # Generate vision at each player position
-        coords = index_to_coords(env.player_coords, env.map_shape[1])
-        map_state = np.zeros(env.map_shape, np.float32)
-        map_state_flatten = map_state.reshape(-1)
-        map_state_flatten[env.wall_coords] = -1
-        map_state_flatten[env.food_coords] = 1
-        obs = np_utils.extract_view(map_state, coords, 2, True)
-        obs = obs.reshape((len(obs), -1))
-        return obs
-     
-    def set_action(self, a):
-        self.env.next_action[:] = a
-
 def step(pi_model, v_model, obs, a=None):
     """ Makes one prediction of policy and value
     
@@ -99,18 +52,12 @@ def step(pi_model, v_model, obs, a=None):
 
 class Agent(object):
     
-    def __init__(self, env, is_training):
+    def __init__(self, env, ai_stub, is_training):
         self.env = env
         self.num_players = 1
-        
+        self.ai_stub = ai_stub
         proj = _dust.project()
         
-        if proj.cfg.env == 'env00':
-            self.env_stub = Env00Stub(env)
-        elif proj.cfg.env == 'env01':
-            self.env_stub = Env01Stub(env)
-        else:
-            raise RuntimeError('Unknown environment '.format(proj.cfg.env))
         #def count_vars(module):
         #    return sum([np.prod(p.shape) for p in module.parameters()])
         #var_counts = tuple(count_vars(module) for module in [ac.pi, ac.v])
@@ -118,9 +65,9 @@ class Agent(object):
         
         self.training = is_training
         
-        obs_dim = self.env_stub.obs_dim
-        act_dim = self.env_stub.act_dim
-        net_size = self.env_stub.net_size
+        obs_dim = self.ai_stub.obs_dim
+        act_dim = self.ai_stub.act_dim
+        net_size = self.ai_stub.net_size
         
         self.buf = PPOBuffer(obs_dim, None, _EPOCH_LENGTH)
         pi_model, v_model = create_default_actor_crtic(obs_dim, act_dim, net_size)
@@ -144,14 +91,14 @@ class Agent(object):
         # observe
         env = self.env
         
-        obs = self.env_stub.get_observation()
+        obs = self.ai_stub.get_observation()
         obs_tensor = torch.as_tensor(obs, dtype=torch.float32)
         #if ac.use_cuda:
         #    obs_tensor = obs_tensor.cuda()
         a, v, logp = step(self.pi_model, self.v_model, obs_tensor)
         
         #self.env.set_action(np.random.randint(0, 4, self.num_players))
-        self.env_stub.set_action(a)
+        self.ai_stub.set_action(a)
         self.ac_data = (a, v, logp, obs)
         #logging.info('act: {}'.format(env.curr_round_tick))
 
@@ -167,7 +114,7 @@ class Agent(object):
         
         def _update_round():
             if forced_round_end:
-                obs = self.env_stub.get_observation()
+                obs = self.ai_stub.get_observation()
                 obs_tensor = torch.as_tensor(obs, dtype=torch.float32)
                 #if self.ac.use_cuda:
                 #    obs_tensor = obs_tensor.cuda()
@@ -201,7 +148,7 @@ class Agent(object):
             
             if env.end_of_round or end_of_epoch:
                 self.epoch_num_rounds += 1
-                # TODO: ask a stats object from the env/env_stub
+                # TODO: ask a stats object from the env/ai_stub
                 avg_round_reward = self.epoch_reward / self.epoch_num_rounds
                 status_msg = 'tick: {} round: {} round_tick: {} ' \
                             'epoch: {} epoch_tick: {} round_reward: {} avg_round_reward: {}'.format(

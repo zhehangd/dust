@@ -1,6 +1,6 @@
 import logging
 
-from dust.core.env import BaseEnv
+from dust.core.env import EnvCore
 
 # There is a good ending state (G) and a bad ending state (B)
 # There are three states X, Y, Z and two actions L and R.
@@ -10,7 +10,7 @@ from dust.core.env import BaseEnv
 # R  B    Z    B
 #
 
-class Env(BaseEnv):
+class Env(EnvCore):
     
     """
     

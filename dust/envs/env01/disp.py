@@ -5,6 +5,8 @@ import numpy as np
 
 from dust.dev import rendering 
 
+from dust.core.env import EnvDisplay
+
 # Sleep after each render
 # This allows us to control the actual FPS
 _RENDER_SLEEP_TIME = 0.01
@@ -23,9 +25,10 @@ _COLOR_PLAYER = (0.1,0.9,0.1)
 def _make_polygon(tl, br):
     return [tl, (br[0], tl[1]), br, (tl[0], br[1])]
 
-class Disp(object):
+class Disp(EnvDisplay):
     
-    def __init__(self, env):
+    def __init__(self, env_core, env_ai_stub):
+        env = env_core
         self.env = env
         w, h = env.map_shape
         
@@ -40,7 +43,10 @@ class Disp(object):
         self.offset_coords = offset_coords
         self.square_size = square_size
         self.viewer = None
-        
+    
+    def init(self):
+        pass
+    
     def render(self):
         if self.viewer is None:
             self.viewer = rendering.Viewer(_DISP_WIN_WIDTH, _DISP_WIN_HEIGHT)

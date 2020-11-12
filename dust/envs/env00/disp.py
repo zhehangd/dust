@@ -1,8 +1,10 @@
 import logging
 
-class Disp(object):
+from dust.core.env import EnvDisplay
+
+class Disp(EnvDisplay):
     
-    def __init__(self, env):
+    def __init__(self, env, env_ai_stub):
         self.env = env
         self.states = []
         
