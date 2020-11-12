@@ -8,7 +8,7 @@ from dust.core import project
 
 from dust import _dust
 from dust.utils import utils
-from dust.dev.agent import Agent
+from dust.ai_engines.prototype import PrototypeAIEngine
 from dust.core.env import EnvCore, EnvAIStub, EnvDisplay
 
 _argparser = _dust.argparser()
@@ -63,7 +63,7 @@ def train():
     # TODO: put in constructor?
     env_core.new_environment()
     
-    agent = Agent(env_core, env_ai_stub, True)
+    agent = PrototypeAIEngine(env_core, env_ai_stub, True)
     
     t = SimTimer(0)
     

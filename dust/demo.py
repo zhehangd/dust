@@ -9,7 +9,7 @@ from dust.core import project
 
 from dust import _dust
 from dust.utils import utils
-from dust.dev.agent import Agent
+from dust.ai_engines.prototype import PrototypeAIEngine
 from dust.core.env import EnvCore, EnvAIStub, EnvDisplay
 
 _argparser = _dust.argparser()
@@ -32,7 +32,7 @@ def demo():
     env_disp = env_module.create_disp(env_core, env_ai_stub)
     assert isinstance(env_disp, EnvDisplay), type(env_disp)
     
-    agent = Agent(env_core, env_ai_stub, False)
+    agent = PrototypeAIEngine(env_core, env_ai_stub, False)
     assert agent.pi_model is not None
     assert agent.v_model is not None
     net_data = torch.load(os.path.join(proj.proj_dir, 'network.pth'))

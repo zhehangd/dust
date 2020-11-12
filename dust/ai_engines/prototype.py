@@ -50,7 +50,7 @@ def step(pi_model, v_model, obs, a=None):
     assert a.shape == logp_a.shape
     return a, v, logp_a
 
-class Agent(object):
+class PrototypeAIEngine(object):
     
     def __init__(self, env, ai_stub, is_training):
         self.env = env

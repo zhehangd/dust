@@ -3,8 +3,7 @@ import time
 
 import numpy as np 
 
-from dust.dev import rendering 
-
+from dust.core import rendering 
 from dust.core.env import EnvDisplay
 
 # Sleep after each render
