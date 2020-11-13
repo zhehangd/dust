@@ -5,8 +5,6 @@ import time
 
 import torch
 
-from dust.core import project
-
 from dust import _dust
 from dust.utils import utils
 from dust.ai_engines.prototype import PrototypeAIEngine
@@ -55,7 +53,7 @@ def demo():
 if __name__ == '__main__':
     
     try:
-        proj = project.load_project('demo')
+        proj = _dust.load_project('demo')
         logging.info('Starting simulation...')
         demo()
     except KeyboardInterrupt:

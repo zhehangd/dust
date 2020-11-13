@@ -1,9 +1,9 @@
 import numpy as np
 import torch
 
-from dust.core.su_core import create_default_actor_crtic
-from dust.core.ppo_buffer import PPOBuffer
-from dust.core.trainer import Trainer
+from dust.utils.su_core import create_default_actor_crtic
+from dust.utils.ppo_buffer import PPOBuffer
+from dust.utils.trainer import Trainer
 
 def make_one_line(obj):
     """ Join lines into one

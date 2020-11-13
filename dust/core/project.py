@@ -1,17 +1,17 @@
 import argparse
-import os
 import datetime
 import logging
+import os
 import sys
 import toml
 
-from dust.utils.arg_cfg_parse import Namespace, ArgCfgParser
+import dust.core.init
 
 _PROJECT = None
 
 _PROJECT_FILE = 'project.toml'
 
-_ARG_PARSER = ArgCfgParser()
+_ARG_PARSER = dust.core.init.argparser()
 
 _ARG_PARSER.add_argument(
     '--proj_dir',
@@ -21,14 +21,6 @@ _ARG_PARSER.add_argument(
     '--save_cfg',
     type=bool, default=True, 
     help='Save project configuration')
-
-def argparser():
-    """ Returns the global argparser
-    We maintain a single argparser for all dust modules.
-    All modules call this function to get the parser and
-    define arguments at the module level.
-    """
-    return _ARG_PARSER
 
 class Project(object):
     """

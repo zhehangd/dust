@@ -1,11 +1,11 @@
 import logging
 
-from dust.core import project
+from dust import _dust
 
 if __name__ == '__main__':
     
     try:
-        proj = project.create_project('init')
+        proj = _dust.create_project('init')
         proj.save_project()
         logging.info('Initialized the project')
     except KeyboardInterrupt:

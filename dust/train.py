@@ -4,8 +4,6 @@ import time
 
 import numpy as np
 
-from dust.core import project
-
 from dust import _dust
 from dust.utils import utils
 from dust.ai_engines.prototype import PrototypeAIEngine
@@ -97,7 +95,7 @@ def train():
 if __name__ == '__main__':
     
     try:
-        proj = project.load_project('train')
+        proj = _dust.load_project('train')
         logging.info('Starting training...')
         train()
     except KeyboardInterrupt:

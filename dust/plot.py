@@ -6,7 +6,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from dust import _dust
-from dust.core import project
 from dust.utils import utils
 
 _argparser = _dust.argparser()
@@ -30,7 +29,7 @@ class YSource(object):
         self.name = name
 
 if __name__ == '__main__':
-    proj = project.load_project('plot')
+    proj = _dust.load_project('plot')
     
     logging.info('Plotting training progress...')
     

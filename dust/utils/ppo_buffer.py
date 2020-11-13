@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from dust.core import su_core as core
+from dust.utils import su_core as core
 
 class PPOBuffer:
     """

@@ -10,14 +10,9 @@ import scipy.signal
 from dust import _dust
 from dust.core import progress_log
 from dust.utils import np_utils
-
-from dust.core.su_core import create_default_actor_crtic
-from dust.core.ppo_buffer import PPOBuffer
-from dust.core.trainer import Trainer
-
-# TODO: importing all envs is a bad idea
-#from dust.envs.env00.core import Env as Env00
-#from dust.envs.env01.core import Env as Env01
+from dust.utils.su_core import create_default_actor_crtic
+from dust.utils.ppo_buffer import PPOBuffer
+from dust.utils.trainer import Trainer
 
 _argparser = _dust.argparser()
 
