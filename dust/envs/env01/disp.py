@@ -3,7 +3,7 @@ import time
 
 import numpy as np 
 
-from dust.core import rendering 
+from dust.utils import rendering 
 from dust.core.env import EnvDisplay
 
 # Sleep after each render
@@ -27,8 +27,10 @@ def _make_polygon(tl, br):
 class Disp(EnvDisplay):
     
     def __init__(self, env_core, env_ai_stub):
-        env = env_core
-        self.env = env
+        self.env = env_core
+    
+    def init(self):
+        env = self.env
         w, h = env.map_shape
         
         # Size of a square
@@ -42,9 +44,6 @@ class Disp(EnvDisplay):
         self.offset_coords = offset_coords
         self.square_size = square_size
         self.viewer = None
-    
-    def init(self):
-        pass
     
     def render(self):
         if self.viewer is None:

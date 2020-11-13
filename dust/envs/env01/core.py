@@ -25,7 +25,7 @@ _MAX_TICKS_PER_ROUND = 100
 # The *index* of a position is defined as xi * H + yi, which is used to
 # access the elements of a flattened array.
 
-class Env(EnvCore):
+class Env01Core(EnvCore):
     
     """
     

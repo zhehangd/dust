@@ -3,6 +3,12 @@ class EnvFrame(object):
     def __init__(self, env_core):
         self.env_core = env_core
     
+    def new_simulation(self):
+        """ Creates a new simulation
+        """
+        self.env_core.new_simulation()
+
+        
     def evolve(self):
         self.env_core.evolve()
     

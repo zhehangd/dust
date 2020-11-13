@@ -39,10 +39,10 @@ class EnvCore(object):
         self.end_of_round = False
 
 
-    def new_environment(self):
-        """ Creates a new environment.
+    def new_simulation(self):
+        """ Creates a new simulation
         """
-        logging.info('Creating a new environment')
+        logging.info('Creating a new simulation')
         self._create_new_round()
     
     def load_environment(self):

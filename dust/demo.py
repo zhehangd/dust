@@ -1,44 +1,39 @@
-import importlib
 import logging
 import os
+import sys
 import time
 
 import torch
 
 from dust import _dust
-from dust.utils import utils
-from dust.ai_engines.prototype import PrototypeAIEngine
-from dust.core.env import EnvCore, EnvAIStub, EnvDisplay
 
 _argparser = _dust.argparser()
+
+_argparser.add_argument(
+    '--env', 
+    default='env01',
+    help='Environment to use')
+
+def init():
+    _dust.register_all_envs()
+    _dust.register_all_env_arguments()
+    proj = _dust.load_project('demo')
 
 def demo():
     
     proj = _dust.project()
     
-    env_name = proj.cfg.env
-    env_module = importlib.import_module('dust.envs.' + env_name)
+    env_name = proj.args.env
+    env_frame, ai_frame, disp_frame = _dust.create_demo_frames(env_name)
+    env_frame.new_simulation()
     
-    env_core = env_module.create_env()
-    assert isinstance(env_core, EnvCore), type(env_core)
-    env_frame = EnvFrame(env_core)
+    ai_engine = ai_frame.ai_engine
     
-    env_ai_stub = env_module.create_ai_stub(env_core)
-    assert isinstance(env_ai_stub, EnvAIStub), type(env_ai_stub)
-    
-    env_core.new_environment()
-    
-    env_disp = env_module.create_disp(env_core, env_ai_stub)
-    assert isinstance(env_disp, EnvDisplay), type(env_disp)
-    disp_frame = DispFrame(env_disp)
-    
-    agent = PrototypeAIEngine(env_core, env_ai_stub, False)
-    ai_frame = AIFrame(agent)
-    assert agent.pi_model is not None
-    assert agent.v_model is not None
+    assert ai_engine.pi_model is not None
+    assert ai_engine.v_model is not None
     net_data = torch.load(os.path.join(proj.proj_dir, 'network.pth'))
-    agent.pi_model = net_data['pi_model']
-    agent.v_model = net_data['v_model']
+    ai_engine.pi_model = net_data['pi_model']
+    ai_engine.v_model = net_data['v_model']
     
     disp_frame.init()
     disp_frame.render()
@@ -53,7 +48,8 @@ def demo():
 if __name__ == '__main__':
     
     try:
-        proj = _dust.load_project('demo')
+        sys.stderr.write('Initializing dust\n')
+        init()
         logging.info('Starting simulation...')
         demo()
     except KeyboardInterrupt:
