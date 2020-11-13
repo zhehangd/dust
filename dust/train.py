@@ -8,23 +8,6 @@ import numpy as np
 from dust import _dust
 from dust.utils import utils
 
-_argparser = _dust.argparser()
-
-_argparser.add_argument(
-    '--timing_ticks',
-    type=int, default=10000,
-    help='Number of ticks between each timing')
-
-_argparser.add_argument(
-    '--env', 
-    default='env01',
-    help='Environment to use')
-
-_argparser.add_argument(
-    '--engine', 
-    default='prototype',
-    help='AI engine to use')
-
 class SimTimer(object):
     
     def __init__(self, start_epoch):
@@ -91,6 +74,23 @@ def train():
             logging.info(t.generate_report_and_reset())
 
 if __name__ == '__main__':
+    
+    _argparser = _dust.argparser()
+
+    _argparser.add_argument(
+        '--timing_ticks',
+        type=int, default=10000,
+        help='Number of ticks between each timing')
+
+    _argparser.add_argument(
+        '--env', 
+        default='env01',
+        help='Environment to use')
+
+    _argparser.add_argument(
+        '--engine', 
+        default='prototype',
+        help='AI engine to use')
     
     try:
         sys.stderr.write('Initializing dust\n')

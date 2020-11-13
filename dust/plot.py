@@ -8,20 +8,6 @@ import matplotlib.pyplot as plt
 from dust import _dust
 from dust.utils import utils
 
-_argparser = _dust.argparser()
-
-_argparser.add_argument('--x', type=str, default='epoch',
-                        help='Field for x-axis')
-
-_argparser.add_argument('--y', type=str, nargs='+', default=['score', 'Entropy'],
-                        help='One or more fields mapped to y-axis')
-
-_argparser.add_argument('--smooth', type=int, default=0,
-                        help='Smoothing filter size')
-
-COLORS = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple',
-          'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
-
 class YSource(object):
     
     def __init__(self, name, data):
@@ -29,6 +15,21 @@ class YSource(object):
         self.name = name
 
 if __name__ == '__main__':
+    
+    _argparser = _dust.argparser()
+
+    _argparser.add_argument('--x', type=str, default='epoch',
+                            help='Field for x-axis')
+
+    _argparser.add_argument('--y', type=str, nargs='+', default=['score', 'Entropy'],
+                            help='One or more fields mapped to y-axis')
+
+    _argparser.add_argument('--smooth', type=int, default=0,
+                            help='Smoothing filter size')
+
+    COLORS = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple',
+            'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
+
     proj = _dust.load_project('plot')
     
     logging.info('Plotting training progress...')

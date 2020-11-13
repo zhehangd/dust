@@ -7,17 +7,7 @@ import torch
 
 from dust import _dust
 
-_argparser = _dust.argparser()
 
-_argparser.add_argument(
-    '--env', 
-    default='env01',
-    help='Environment to use')
-
-_argparser.add_argument(
-    '--engine', 
-    default='prototype',
-    help='AI engine to use')
 
 def init():
     _dust.register_all_envs()
@@ -54,6 +44,18 @@ def demo():
         time.sleep(0.03)
 
 if __name__ == '__main__':
+    
+    _argparser = _dust.argparser()
+
+    _argparser.add_argument(
+        '--env', 
+        default='env01',
+        help='Environment to use')
+
+    _argparser.add_argument(
+        '--engine', 
+        default='prototype',
+        help='AI engine to use')
     
     try:
         sys.stderr.write('Initializing dust\n')

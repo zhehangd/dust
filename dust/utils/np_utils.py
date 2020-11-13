@@ -1,13 +1,14 @@
 import numpy as np
 
 def extract_view(src, pos, vr, batched=False):
-    """
+    """ X
+    
     Args:
-      src N-d source array for view extraction.
-      pos Coordinates of the view center.
-          If batched is False it is an 1-d array of len k, where k <= n.
-          If batched is True it is a 2-d array where the 1st dimension is batch
-      vr int radius of the view
+    :param src: N-d source array for view extraction.
+    :param pos: Coordinates of the view center.
+    If batched is False it is an 1-d array of len k, where k <= n.
+    If batched is True it is a 2-d array where the 1st dimension is batch
+    :param vr: int radius of the view
     """
     if batched:
         bsize = len(pos)
