@@ -8,6 +8,7 @@ import numpy as np
 import scipy.signal
 
 from dust import _dust
+from dust.core import ai_engine
 from dust.core import progress_log
 from dust.utils import np_utils
 from dust.utils.su_core import create_default_actor_crtic
@@ -45,9 +46,9 @@ def step(pi_model, v_model, obs, a=None):
     assert a.shape == logp_a.shape
     return a, v, logp_a
 
-class PrototypeAIEngine(object):
+class PrototypeAIEngine(ai_engine.AIEngine):
     
-    def __init__(self, env, ai_stub, is_training):
+    def __init__(self, env, ai_stub, freeze):
         self.env = env
         self.num_players = 1
         self.ai_stub = ai_stub
@@ -58,7 +59,7 @@ class PrototypeAIEngine(object):
         #var_counts = tuple(count_vars(module) for module in [ac.pi, ac.v])
         #logging.info('\nNumber of parameters: \t pi: %d, \t v: %d\n'%var_counts)
         
-        self.training = is_training
+        self.training = not freeze
         
         obs_dim = self.ai_stub.obs_dim
         act_dim = self.ai_stub.act_dim

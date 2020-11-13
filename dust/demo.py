@@ -14,9 +14,16 @@ _argparser.add_argument(
     default='env01',
     help='Environment to use')
 
+_argparser.add_argument(
+    '--engine', 
+    default='prototype',
+    help='AI engine to use')
+
 def init():
     _dust.register_all_envs()
     _dust.register_all_env_arguments()
+    _dust.register_all_ai_engines()
+    _dust.register_all_ai_engine_arguments()
     proj = _dust.load_project('demo')
 
 def demo():
@@ -24,7 +31,8 @@ def demo():
     proj = _dust.project()
     
     env_name = proj.args.env
-    env_frame, ai_frame, disp_frame = _dust.create_demo_frames(env_name)
+    engine_name = proj.args.engine
+    env_frame, ai_frame, disp_frame = _dust.create_demo_frames(env_name, engine_name)
     env_frame.new_simulation()
     
     ai_engine = ai_frame.ai_engine

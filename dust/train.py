@@ -20,6 +20,11 @@ _argparser.add_argument(
     default='env01',
     help='Environment to use')
 
+_argparser.add_argument(
+    '--engine', 
+    default='prototype',
+    help='AI engine to use')
+
 class SimTimer(object):
     
     def __init__(self, start_epoch):
@@ -48,13 +53,16 @@ class SimTimer(object):
 def init():
     _dust.register_all_envs()
     _dust.register_all_env_arguments()
+    _dust.register_all_ai_engines()
+    _dust.register_all_ai_engine_arguments()
     proj = _dust.load_project('train')
 
 def train():
     proj = _dust.project()
     
     env_name = proj.args.env
-    env_frame, ai_frame = _dust.create_training_frames(env_name)
+    engine_name = proj.args.engine
+    env_frame, ai_frame = _dust.create_training_frames(env_name, engine_name)
     env_frame.new_simulation()
     
     t = SimTimer(0)

@@ -9,9 +9,11 @@ _AI_ENGINE_REGISTRY = {}
 
 _ARG_PARSER = _arg_cfg_parse.ArgCfgParser()
 
-# Hold environment infomation and provide basic checking
-# of the callback.
 class EnvRecord(object):
+    """
+    
+    Holds environment infomation and provide basic checking of the callback.
+    """
     
     def __init__(self):
         self._name = ""
@@ -32,24 +34,27 @@ def register_env(name, create_env, create_ai_stub,
         raise RuntimeError('"{}" is a registered env.'.format(name))
     _ENV_REGISTRY[name] = record
 
+def _import_all_modules_from_package(pkg_name, type_name, dst_dict):
+    import importlib
+    root_pkg = importlib.import_module(pkg_name)
+    root_dir = os.path.dirname(root_pkg.__file__)
+    for mod_name in os.listdir(root_dir):
+        env_module_path = os.path.join(root_dir, mod_name)
+        env_init_path = os.path.join(env_module_path, '__init__.py')
+        if os.path.isdir(env_module_path) and os.path.isfile(env_init_path):
+            sys.stderr.write('Importing {} {} ...\n'.format(type_name, mod_name))
+            num_records = len(dst_dict)
+            # __init__ module should do the registration
+            module = importlib.import_module('{}.{}'.format(pkg_name, mod_name))
+            if num_records == len(dst_dict):
+                sys.stderr.write('Module {} didn\'t register any {}.\n'.format(mod_name, type_name))
+
 def register_all_envs():
     """ Registers environments from all known sources
     This function should be called once before creating or loading a project,
     if one expects to interact with any environment.
     """
-    import importlib
-    env_root_module = importlib.import_module('dust.envs')
-    env_root_dir = os.path.dirname(env_root_module.__file__)
-    for env_name in os.listdir(env_root_dir):
-        env_module_path = os.path.join(env_root_dir, env_name)
-        env_init_path = os.path.join(env_module_path, '__init__.py')
-        if os.path.isdir(env_module_path) and os.path.isfile(env_init_path):
-            sys.stderr.write('Importing env {} ...\n'.format(env_name))
-            num_records = len(_ENV_REGISTRY)
-            # __init__ module should do the registration
-            module = importlib.import_module('dust.envs.' + env_name)
-            if num_records == len(_ENV_REGISTRY):
-                sys.stderr.write('Module {} didn\'t register any env.\n'.format(env_name))
+    _import_all_modules_from_package('dust.envs', 'env', _ENV_REGISTRY)
 
 def register_all_env_arguments():
     """ Iterates all registered envs and registers their arguments
@@ -58,52 +63,91 @@ def register_all_env_arguments():
     """
     for env_name, record in _ENV_REGISTRY.items():
         if record._register_args:
-            sys.stderr.write('Register env {} arguments.\n')
+            sys.stderr.write('Register env {} arguments.\n'.format(env_name))
             record._register_args()
         else:
             sys.stderr.write('Env {} does not have argument function.\n')
 
-# TODO: moves to frames.py
+class AIEngineRecord(object):
+    """
+    
+    Holds environment infomation and provide basic checking of the callback.
+    """
+    
+    def __init__(self):
+        self._name = ""
+        self._create_instance = None
+        self._register_args = None
+
+def register_ai_engine(name, fn_create, fn_arugments):
+    record = EnvRecord()
+    record._name = name
+    record._create_instance = fn_create
+    record._register_args = fn_arugments
+    if hasattr(_AI_ENGINE_REGISTRY, name):
+        raise RuntimeError('"{}" is a registered AI engine.'.format(name))
+    _AI_ENGINE_REGISTRY[name] = record
+
+def register_all_ai_engines():
+    _import_all_modules_from_package('dust.ai_engines', 'ai engine',
+                                     _AI_ENGINE_REGISTRY)
+
+def register_all_ai_engine_arguments():
+    """ Iterates all registered envs and registers their arguments
+    This function should be called once before creating or loading a project,
+    after all required envs are registered.
+    """
+    for engine_name, record in _AI_ENGINE_REGISTRY.items():
+        if record._register_args:
+            sys.stderr.write('Register AI engine {} arguments.\n'.format(engine_name))
+            record._register_args()
+        else:
+            sys.stderr.write('AI engine {} does not have argument function.\n')
+
+# TODO: moves to frames.py?
 
 def create_training_frames(env_name, ai_engine_name=None):
     
     from dust.ai_engines.prototype import PrototypeAIEngine
     from dust.core.env import EnvCore, EnvAIStub, EnvDisplay
-    from dust.core.frame import EnvFrame, AIFrame, DispFrame
+    from dust.core import frames
     
     env_record = _ENV_REGISTRY[env_name]
     env_core = env_record._create_env()
     assert isinstance(env_core, EnvCore), type(env_core)
-    env_frame = EnvFrame(env_core)
-    
-    env_ai_stub = env_record._create_ai_stub(env_core)
-    assert isinstance(env_ai_stub, EnvAIStub), type(env_ai_stub)
-    
-    agent = PrototypeAIEngine(env_core, env_ai_stub, True)
-    ai_frame = AIFrame(agent)
-    
-    return env_frame, ai_frame
-
-def create_demo_frames(env_name, ai_engine_name=None):
-    
-    from dust.ai_engines.prototype import PrototypeAIEngine
-    from dust.core.env import EnvCore, EnvAIStub, EnvDisplay
-    from dust.core.frame import EnvFrame, AIFrame, DispFrame
-    
-    env_record = _ENV_REGISTRY[env_name]
-    env_core = env_record._create_env()
-    assert isinstance(env_core, EnvCore), type(env_core)
-    env_frame = EnvFrame(env_core)
+    env_frame = frames.EnvFrame(env_core)
     
     env_ai_stub = env_record._create_ai_stub(env_core)
     assert isinstance(env_ai_stub, EnvAIStub), type(env_ai_stub)
     
     agent = PrototypeAIEngine(env_core, env_ai_stub, False)
-    ai_frame = AIFrame(agent)
+    ai_frame = frames.AIFrame(agent)
+    
+    return env_frame, ai_frame
+
+def create_demo_frames(env_name, ai_engine_name=None):
+    
+    from dust.core.env import EnvCore, EnvAIStub, EnvDisplay
+    from dust.core.ai_engine import AIEngine
+    from dust.core import frames
+    
+    env_record = _ENV_REGISTRY[env_name]
+    env_core = env_record._create_env()
+    assert isinstance(env_core, EnvCore), type(env_core)
+    env_frame = frames.EnvFrame(env_core)
+    
+    env_ai_stub = env_record._create_ai_stub(env_core)
+    assert isinstance(env_ai_stub, EnvAIStub), type(env_ai_stub)
+    
+    
+    ai_engine_record = _AI_ENGINE_REGISTRY[ai_engine_name]
+    ai_engine = ai_engine_record._create_instance(env_core, env_ai_stub, True)
+    assert isinstance(ai_engine, AIEngine), type(ai_engine)
+    ai_frame = frames.AIFrame(ai_engine)
     
     env_disp = env_record._create_disp(env_core, env_ai_stub)
     assert isinstance(env_disp, EnvDisplay), type(env_disp)
-    disp_frame = DispFrame(env_disp)
+    disp_frame = frames.DispFrame(env_disp)
     
     return env_frame, ai_frame, disp_frame
     
