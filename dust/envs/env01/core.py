@@ -94,8 +94,8 @@ class Env01Core(EnvCore):
         self.tick_reward -= np.sum(np.maximum(0, self.move_count[self.player_coords] - 2))
         self.tick_reward -= num_collision
         
-        assert self.curr_round_tick <= _MAX_TICKS_PER_ROUND - 1
-        if self.curr_round_tick == _MAX_TICKS_PER_ROUND - 1:
+        assert self.curr_round_tick <= _MAX_TICKS_PER_ROUND 
+        if self.curr_round_tick == _MAX_TICKS_PER_ROUND:
             self.end_of_round = True
             
         if self.player_coords[0] == 78:
@@ -109,4 +109,6 @@ class Env01Core(EnvCore):
         #logging.info('r/t reward {}, {}'.format(self.round_reward, self.tick_reward))
         self.round_reward += self.tick_reward
     
-    
+    def update(self):
+        pass
+

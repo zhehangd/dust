@@ -29,7 +29,10 @@ class EnvFrame(object):
         """
         logging.info('Importing environment state')
         raise NotImplementedError()
-        
+    
+    def next_tick(self):
+        self.env_core.next_tick()
+
     def evolve(self) -> None:
         """ Executes one-tick simulation
         """
@@ -38,7 +41,7 @@ class EnvFrame(object):
     
     def update(self) -> None:
         # TODO: merges this stage to evolve
-        self.env_core.next_tick()
+        self.env_core.update()
 
 class AIFrame(object):
     """ Interface to interact with an AI engine

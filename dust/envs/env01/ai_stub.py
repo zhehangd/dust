@@ -30,3 +30,4 @@ class Env01Stub(EnvAIStub):
      
     def set_action(self, a):
         self.env.next_action[:] = a
+

@@ -77,17 +77,20 @@ class EnvCore(_EnvComponent):
         """
         self._evolve_tick()
         self.round_reward += self.tick_reward
+   
+    def update(self):
+        raise NotImplementedError()
     
     def next_tick(self):
-        self.tick_reward = 0
-        self.curr_tick += 1
-        self.curr_round_tick += 1
         if self.end_of_round:
             self.end_of_round = False
             self.round_reward = 0
             self.curr_round_tick = 0
             self.curr_round += 1
             self._create_new_round()
+        self.tick_reward = 0
+        self.curr_tick += 1
+        self.curr_round_tick += 1
  
     def _create_new_round(self):
         """

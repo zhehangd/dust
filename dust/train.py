@@ -50,6 +50,9 @@ def train():
     
     t = SimTimer(0)
     while True:
+
+        with t.section('env-next-tick'):
+            env_frame.next_tick()
         
         # Agents observe the environment and take action
         with t.section('agent-act'):
@@ -66,7 +69,7 @@ def train():
         
         # Environment update its data and move to the
         # state of the next tick
-        with t.section('env-nexttick'):
+        with t.section('env-update'):
             env_frame.update()
         
         t.finish_iteration()

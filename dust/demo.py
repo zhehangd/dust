@@ -36,11 +36,12 @@ def demo():
     disp_frame.init()
     disp_frame.render()
     while True:
+        env_frame.next_tick()
         ai_frame.perceive_and_act()
         env_frame.evolve()
         ai_frame.update()
-        disp_frame.render()
         env_frame.update()
+        disp_frame.render()
         time.sleep(0.03)
 
 if __name__ == '__main__':
