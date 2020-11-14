@@ -36,7 +36,30 @@ class Env01Core(EnvCore):
     
     def __init__(self):
         super().__init__()
+        # --------------- Attributes for Read-only -----------
+        # They represent the state of the environment for users to check. 
+        # Do NOT modify them.
         
+        self.curr_tick = 0
+        self.curr_round_tick = 0
+        self.curr_round = 0
+        self.tick_reward = 0
+        self.round_reward = 0
+        
+        # ----------------- Interactive attributes ----------------
+        # These attributes are open to read and write in certain conditions
+        # to interact with the environment.
+
+        # Flag indicating a round is ended.
+        # Refreshed by 'evolve' every tick.
+        # 'next_tick' checks this flag and resets the environment if true.
+        # One may manually set this flag between 'evolve' and 'next_tick'
+        # to trigger the resetting.
+        self.end_of_round = False
+    
+    def new_simulation(self):
+        self._create_new_round()
+    
     def _create_new_round(self):
         
         # Generate random coords in the plane except for the edges
@@ -69,8 +92,19 @@ class Env01Core(EnvCore):
         # Next action for each player
         # Filled by agents between steps
         self.next_action = np.zeros(1, dtype='i1')
-        
-    def _evolve_tick(self):
+    
+    def next_tick(self):
+        if self.end_of_round:
+            self.end_of_round = False
+            self.round_reward = 0
+            self.curr_round_tick = 0
+            self.curr_round += 1
+            self._create_new_round()
+        self.tick_reward = 0
+        self.curr_tick += 1
+        self.curr_round_tick += 1
+    
+    def evolve(self):
         actions = self.next_action
         move_coords = self.player_coords + _MOVE_LUT[actions]
         

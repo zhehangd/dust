@@ -21,17 +21,11 @@ class _EnvComponent(object):
         """
         raise NotImplementedError()
 
-
 class EnvCore(_EnvComponent):
     """ Base class of Environment Cores
     
     This is one of the three base classes an environment should implement.
     This one involves the simulation of an environment.
-    
-    A subclass should implement:
-        _create_new_round
-        state_dict
-        load_state_dict
         
     Attributes:
         curr_tick (int): Ticks since the beginning of the simulation.
@@ -44,64 +38,25 @@ class EnvCore(_EnvComponent):
     """
     
     def __init__(self):
-        
-        # --------------- Attributes for Read-only -----------
-        # They represent the state of the environment for users to check. 
-        # Do NOT modify them.
-        
-        self.curr_tick = 0
-        self.curr_round_tick = 0
-        self.curr_round = 0
-        self.tick_reward = 0
-        self.round_reward = 0
-        
-        # ----------------- Interactive attributes ----------------
-        # These attributes are open to read and write in certain conditions
-        # to interact with the environment.
-
-        # Flag indicating a round is ended.
-        # Refreshed by 'evolve' every tick.
-        # 'next_tick' checks this flag and resets the environment if true.
-        # One may manually set this flag between 'evolve' and 'next_tick'
-        # to trigger the resetting.
-        self.end_of_round = False
-
-
-    def new_simulation(self):
+        pass
+    
+    def new_simulation(self) -> None:
         """ Creates a new simulation
         """
-        self._create_new_round()
+        raise NotImplementedError()
     
-    def evolve(self):
+    def evolve(self) -> None:
         """ Executes one tick simulation
         """
-        self._evolve_tick()
-        self.round_reward += self.tick_reward
+        raise NotImplementedError()
    
-    def update(self):
-        raise NotImplementedError()
-    
-    def next_tick(self):
-        if self.end_of_round:
-            self.end_of_round = False
-            self.round_reward = 0
-            self.curr_round_tick = 0
-            self.curr_round += 1
-            self._create_new_round()
-        self.tick_reward = 0
-        self.curr_tick += 1
-        self.curr_round_tick += 1
- 
-    def _create_new_round(self):
-        """
-        Inherited class should implement this
+    def update(self) -> None:
+        """ Post-evolution update
         """
         raise NotImplementedError()
     
-    def _evolve_tick(self):
-        """
-        Inherited class should implement this
-        """
+    def next_tick(self) -> None:
+        raise NotImplementedError()
 
 class EnvAIStub(_EnvComponent):
     """ Base class of AI Stub
@@ -122,10 +77,10 @@ class EnvAIStub(_EnvComponent):
     def __init__(self, env):
         pass
     
-    def get_observation(self):
+    def get_observation(self) -> None:
         raise NotImplementedError()
     
-    def set_action(self, a):
+    def set_action(self, a) -> None:
         raise NotImplementedError()
 
 class EnvDisplay(_EnvComponent):
