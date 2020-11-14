@@ -1,18 +1,20 @@
 import os
 import sys
 
-from dust.utils import _arg_cfg_parse
+from typing import Callable
+
+from dust.core.env import EnvCore, EnvAIStub, EnvDisplay
+from dust.core.ai_engine import AIEngine
+from dust.utils._arg_cfg_parse import ArgCfgParser
 
 _ENV_REGISTRY = {}
 
 _AI_ENGINE_REGISTRY = {}
 
-_ARG_PARSER = _arg_cfg_parse.ArgCfgParser()
+_ARG_PARSER = ArgCfgParser()
 
 class EnvRecord(object):
-    """
-    
-    Holds environment infomation and provide basic checking of the callback.
+    """ Stub of a registered environment.
     """
     
     def __init__(self):
@@ -22,8 +24,26 @@ class EnvRecord(object):
         self._create_disp = None
         self._register_args = None
 
-def register_env(name, create_env, create_ai_stub,
-                 create_disp, register_args):
+def register_env(name: str,
+                 create_env: Callable,
+                 create_ai_stub: Callable,
+                 create_disp: Callable,
+                 register_args) -> None:
+    """ Registers an environment.
+    
+    Registering an environment requires a name and four functions.
+    A name to uniquely identify the registered environment.
+    Three functions to create an environment core, an AI stub,
+    and a display objects. The last function registers arugments
+    for the environment.
+    
+    Args:
+        name (str): Name of the environment.
+        create_env (Callable[[], EnvCore]): X
+        create_ai_stub (Callable[[EnvCore], EnvAIStub]): X
+        create_disp (Callable[[EnvCore, EnvAIStub], EnvDisplay]): X
+    
+    """
     record = EnvRecord()
     record._name = name
     record._create_env = create_env
@@ -34,7 +54,8 @@ def register_env(name, create_env, create_ai_stub,
         raise RuntimeError('"{}" is a registered env.'.format(name))
     _ENV_REGISTRY[name] = record
 
-def _import_all_modules_from_package(pkg_name, type_name, dst_dict):
+def _import_all_modules_from_package(pkg_name: str, type_name: str,
+                                     dst_dict: dict) -> None:
     import importlib
     root_pkg = importlib.import_module(pkg_name)
     root_dir = os.path.dirname(root_pkg.__file__)
@@ -49,14 +70,14 @@ def _import_all_modules_from_package(pkg_name, type_name, dst_dict):
             if num_records == len(dst_dict):
                 sys.stderr.write('Module {} didn\'t register any {}.\n'.format(mod_name, type_name))
 
-def register_all_envs():
+def register_all_envs() -> None:
     """ Registers environments from all known sources
     This function should be called once before creating or loading a project,
     if one expects to interact with any environment.
     """
     _import_all_modules_from_package('dust.envs', 'env', _ENV_REGISTRY)
 
-def register_all_env_arguments():
+def register_all_env_arguments() -> None:
     """ Iterates all registered envs and registers their arguments
     This function should be called once before creating or loading a project,
     after all required envs are registered.
@@ -79,7 +100,7 @@ class AIEngineRecord(object):
         self._create_instance = None
         self._register_args = None
 
-def register_ai_engine(name, fn_create, fn_arugments):
+def register_ai_engine(name: str, fn_create, fn_arugments) -> None:
     record = EnvRecord()
     record._name = name
     record._create_instance = fn_create
@@ -88,11 +109,11 @@ def register_ai_engine(name, fn_create, fn_arugments):
         raise RuntimeError('"{}" is a registered AI engine.'.format(name))
     _AI_ENGINE_REGISTRY[name] = record
 
-def register_all_ai_engines():
+def register_all_ai_engines() -> None:
     _import_all_modules_from_package('dust.ai_engines', 'ai engine',
                                      _AI_ENGINE_REGISTRY)
 
-def register_all_ai_engine_arguments():
+def register_all_ai_engine_arguments() -> None:
     """ Iterates all registered envs and registers their arguments
     This function should be called once before creating or loading a project,
     after all required envs are registered.
@@ -106,7 +127,8 @@ def register_all_ai_engine_arguments():
 
 # TODO: moves to frames.py?
 
-def create_training_frames(env_name, ai_engine_name=None):
+def create_training_frames(env_name: str,
+                           ai_engine_name: str = None) -> None:
     
     from dust.ai_engines.prototype import PrototypeAIEngine
     from dust.core.env import EnvCore, EnvAIStub, EnvDisplay
@@ -125,7 +147,8 @@ def create_training_frames(env_name, ai_engine_name=None):
     
     return env_frame, ai_frame
 
-def create_demo_frames(env_name, ai_engine_name=None):
+def create_demo_frames(env_name: str,
+                       ai_engine_name: str = None):
     
     from dust.core.env import EnvCore, EnvAIStub, EnvDisplay
     from dust.core.ai_engine import AIEngine
@@ -151,8 +174,9 @@ def create_demo_frames(env_name, ai_engine_name=None):
     
     return env_frame, ai_frame, disp_frame
     
-def argparser():
+def argparser() -> ArgCfgParser:
     """ Returns the global argparser
+    
     We maintain a single argparser for all dust modules.
     All modules call this function to get the parser and
     define arguments at the module level.

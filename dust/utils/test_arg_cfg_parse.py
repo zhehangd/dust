@@ -1,4 +1,4 @@
-from dust.utils.arg_cfg_parse import ArgCfgParser
+from dust.utils._arg_cfg_parse import ArgCfgParser
 
 def test_ArgCfgParser():
 

@@ -1,9 +1,45 @@
 import logging
 
-class EnvCore(object):
-    """
-    A subclass should implement 
-    _create_new_round
+
+class _EnvComponent(object):
+    
+    def __init__(self):
+        pass
+    
+    def state_dict(self):
+        """ Returns a state dict storing the state of the object.
+        Returns:
+            A dict type object
+        """
+        raise NotImplementedError()
+    
+    def load_state_dict(self, sd):
+        """ Loads a state dict.
+        
+        Args:
+            sd (dict): The state dict.
+        """
+        raise NotImplementedError()
+
+
+class EnvCore(_EnvComponent):
+    """ Base class of Environment Cores
+    
+    This is one of the three base classes an environment should implement.
+    This one involves the simulation of an environment.
+    
+    A subclass should implement:
+        _create_new_round
+        state_dict
+        load_state_dict
+        
+    Attributes:
+        curr_tick (int): Ticks since the beginning of the simulation.
+        curr_round_tick (int): Ticks since the start of this round.
+        curr_round (int): Rounds since the beginning of the simulation.
+        tick_reward (int): Reward earned this tick.
+        round_reward (int): Reward earned this round so far.
+        end_of_round (bool): Indicates the current round is about to end.
     
     """
     
@@ -13,18 +49,10 @@ class EnvCore(object):
         # They represent the state of the environment for users to check. 
         # Do NOT modify them.
         
-        # Tick number since the beginning of the simulation
         self.curr_tick = 0
-        
-        # Tick number starting from the bginning of the round
         self.curr_round_tick = 0
-        
-        # Round number
         self.curr_round = 0
-        
-        # 
         self.tick_reward = 0
-        
         self.round_reward = 0
         
         # ----------------- Interactive attributes ----------------
@@ -42,17 +70,10 @@ class EnvCore(object):
     def new_simulation(self):
         """ Creates a new simulation
         """
-        logging.info('Creating a new simulation')
         self._create_new_round()
     
-    def load_environment(self):
-        """ Creates a environment from a save.
-        """
-        logging.info('Loading a saved environment')
-        raise NotImplementedError()
-    
     def evolve(self):
-        """
+        """ Executes one tick simulation
         """
         self._evolve_tick()
         self.round_reward += self.tick_reward
@@ -79,7 +100,21 @@ class EnvCore(object):
         Inherited class should implement this
         """
 
-class EnvAIStub(object):
+class EnvAIStub(_EnvComponent):
+    """ Base class of AI Stub
+    
+    This is one of the three base classes an environment should implement.
+    This one involves the interaction between an environment and an AI engine.
+    
+    A subclass should implement:
+        get_observation
+        set_action
+        state_dict
+        load_state_dict
+        
+    Attributes:
+    
+    """
     
     def __init__(self, env):
         pass
@@ -90,7 +125,19 @@ class EnvAIStub(object):
     def set_action(self, a):
         raise NotImplementedError()
 
-class EnvDisplay(object):
+class EnvDisplay(_EnvComponent):
+    """ Base class of AI Stub
+    
+    This is one of the three base classes an environment should implement.
+    This one involves the display of the simulation.
+    
+    A subclass should implement:
+        state_dict
+        load_state_dict
+        
+    Attributes:
+    
+    """
     
     def __init__(self):
         pass
