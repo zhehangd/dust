@@ -125,55 +125,6 @@ def register_all_ai_engine_arguments() -> None:
         else:
             sys.stderr.write('AI engine {} does not have argument function.\n')
 
-# TODO: moves to frames.py?
-
-def create_training_frames(env_name: str,
-                           ai_engine_name: str = None) -> None:
-    
-    from dust.ai_engines.prototype import PrototypeAIEngine
-    from dust.core.env import EnvCore, EnvAIStub, EnvDisplay
-    from dust.core import frames
-    
-    env_record = _ENV_REGISTRY[env_name]
-    env_core = env_record._create_env()
-    assert isinstance(env_core, EnvCore), type(env_core)
-    env_frame = frames.EnvFrame(env_core)
-    
-    env_ai_stub = env_record._create_ai_stub(env_core)
-    assert isinstance(env_ai_stub, EnvAIStub), type(env_ai_stub)
-    
-    agent = PrototypeAIEngine(env_core, env_ai_stub, False)
-    ai_frame = frames.AIFrame(agent)
-    
-    return env_frame, ai_frame
-
-def create_demo_frames(env_name: str,
-                       ai_engine_name: str = None):
-    
-    from dust.core.env import EnvCore, EnvAIStub, EnvDisplay
-    from dust.core.ai_engine import AIEngine
-    from dust.core import frames
-    
-    env_record = _ENV_REGISTRY[env_name]
-    env_core = env_record._create_env()
-    assert isinstance(env_core, EnvCore), type(env_core)
-    env_frame = frames.EnvFrame(env_core)
-    
-    env_ai_stub = env_record._create_ai_stub(env_core)
-    assert isinstance(env_ai_stub, EnvAIStub), type(env_ai_stub)
-    
-    
-    ai_engine_record = _AI_ENGINE_REGISTRY[ai_engine_name]
-    ai_engine = ai_engine_record._create_instance(env_core, env_ai_stub, True)
-    assert isinstance(ai_engine, AIEngine), type(ai_engine)
-    ai_frame = frames.AIFrame(ai_engine)
-    
-    env_disp = env_record._create_disp(env_core, env_ai_stub)
-    assert isinstance(env_disp, EnvDisplay), type(env_disp)
-    disp_frame = frames.DispFrame(env_disp)
-    
-    return env_frame, ai_frame, disp_frame
-    
 def argparser() -> ArgCfgParser:
     """ Returns the global argparser
     
