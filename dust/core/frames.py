@@ -101,7 +101,7 @@ def create_training_frames(env_name: str, ai_engine_name: str) -> tuple:
     assert isinstance(env_ai_stub, EnvAIStub), type(env_ai_stub)
     
     ai_engine_record = _AI_ENGINE_REGISTRY[ai_engine_name]
-    ai_engine = ai_engine_record._create_instance(env_core, env_ai_stub, False)
+    ai_engine = ai_engine_record._create_instance(env_ai_stub, False)
     assert isinstance(ai_engine, AIEngine), type(ai_engine)
     ai_frame = AIFrame(ai_engine)
     
@@ -131,7 +131,7 @@ def create_demo_frames(env_name: str, ai_engine_name: str) -> tuple:
     assert isinstance(env_ai_stub, EnvAIStub), type(env_ai_stub)
     
     ai_engine_record = _AI_ENGINE_REGISTRY[ai_engine_name]
-    ai_engine = ai_engine_record._create_instance(env_core, env_ai_stub, True)
+    ai_engine = ai_engine_record._create_instance(env_ai_stub, True)
     assert isinstance(ai_engine, AIEngine), type(ai_engine)
     ai_frame = AIFrame(ai_engine)
     

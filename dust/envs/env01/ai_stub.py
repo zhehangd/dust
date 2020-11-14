@@ -30,4 +30,16 @@ class Env01Stub(EnvAIStub):
      
     def set_action(self, a):
         self.env.next_action[:] = a
-
+    
+    @property
+    def tick_reward(self) -> int:
+        return self.env.tick_reward
+    
+    @property
+    def end_of_round(self) -> bool:
+        return self.env.end_of_round
+    
+    @end_of_round.setter
+    def end_of_round(self, val) -> None:
+        self.env.end_of_round = val
+        

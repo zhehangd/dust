@@ -48,8 +48,7 @@ def step(pi_model, v_model, obs, a=None):
 
 class PrototypeAIEngine(ai_engine.AIEngine):
     
-    def __init__(self, env, ai_stub, freeze):
-        self.env = env
+    def __init__(self, ai_stub, freeze):
         self.num_players = 1
         self.ai_stub = ai_stub
         proj = _dust.project()
@@ -78,14 +77,8 @@ class PrototypeAIEngine(ai_engine.AIEngine):
         self.curr_epoch = 0
         self.epoch_reward = 0 # reward collected in the epoch (NOT round)
         self.epoch_num_rounds = 0
-        self.num_epoch_collisions = 0
     
     def act(self):
-        
-        # Check any event and calculate the reward from the last stepb 
-        
-        # observe
-        env = self.env
         
         obs = self.ai_stub.get_observation()
         obs_tensor = torch.as_tensor(obs, dtype=torch.float32)
@@ -96,16 +89,14 @@ class PrototypeAIEngine(ai_engine.AIEngine):
         #self.env.set_action(np.random.randint(0, 4, self.num_players))
         self.ai_stub.set_action(a)
         self.ac_data = (a, v, logp, obs)
-        #logging.info('act: {}'.format(env.curr_round_tick))
-
+    
     def update(self):
-        # collect rewards
-        env = self.env
-        self.epoch_reward += env.tick_reward
+        ai_stub = self.ai_stub
+        self.epoch_reward += ai_stub.tick_reward
         
         def _update_tick():
             a, v, logp, obs = self.ac_data
-            r = self.env.tick_reward
+            r = self.ai_stub.tick_reward
             self.buf.store(obs, a, r, v, logp)
         
         def _update_round():
@@ -140,29 +131,18 @@ class PrototypeAIEngine(ai_engine.AIEngine):
             
             end_of_epoch = self.curr_epoch_tick + 1 == _EPOCH_LENGTH
             
-            forced_round_end = (not env.end_of_round) and end_of_epoch
+            forced_round_end = (not ai_stub.end_of_round) and end_of_epoch
             
-            if env.end_of_round or end_of_epoch:
+            if ai_stub.end_of_round or end_of_epoch:
                 self.epoch_num_rounds += 1
-                # TODO: ask a stats object from the env/ai_stub
-                avg_round_reward = self.epoch_reward / self.epoch_num_rounds
-                status_msg = 'tick: {} round: {} round_tick: {} ' \
-                            'epoch: {} epoch_tick: {} round_reward: {} avg_round_reward: {}'.format(
-                                env.curr_tick, env.curr_round,
-                                env.curr_round_tick, self.curr_epoch,
-                                self.curr_epoch_tick, env.round_reward, avg_round_reward)
-                logging.info('EOR: ' + status_msg)
-                env.end_of_round = True # Force env to end the round
+                ai_stub.end_of_round = True # Force env to end the round
                 _update_round()
-                self.num_epoch_collisions += 0#env.num_round_collisions
             
             if end_of_epoch:
-                logging.info('EOE')
                 avg_round_reward = self.epoch_reward / self.epoch_num_rounds
+                logging.info('EOE epoch: {} score: {}'.format(self.curr_epoch, avg_round_reward))
                 self.progress.set_fields(epoch=self.curr_epoch, score=avg_round_reward)
                 
-                #self.progress.set_fields(NumCollisions=self.num_epoch_collisions)
-                self.num_epoch_collisions = 0
                 _update_epoch()
                 self.progress.finish_line()
                 

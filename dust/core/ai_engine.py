@@ -4,7 +4,7 @@ class AIEngine(object):
     """ Base class of AI engines
     """
     
-    def __init__(self, env: EnvCore, ai_stub: EnvAIStub, freeze: bool):
+    def __init__(self, ai_stub: EnvAIStub, freeze: bool):
         """
         TODO: AI engine shouldn't see EnvCore
         Args:

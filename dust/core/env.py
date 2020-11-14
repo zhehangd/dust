@@ -82,6 +82,18 @@ class EnvAIStub(_EnvComponent):
     
     def set_action(self, a) -> None:
         raise NotImplementedError()
+    
+    @property
+    def tick_reward(self) -> int:
+        raise NotImplementedError()
+    
+    @property
+    def end_of_round(self) -> bool:
+        raise NotImplementedError()
+    
+    @end_of_round.setter
+    def end_of_round(self, val) -> None:
+        raise NotImplementedError()
 
 class EnvDisplay(_EnvComponent):
     """ Base class of AI Stub
