@@ -3,6 +3,7 @@ import logging
 import numpy as np
 
 from dust.core.env import EnvCore
+from dust.utils.state_dict import auto_make_state_dict, auto_load_state_dict
 
 _MAP_WIDTH = 16
 _MAP_HEIGHT = 9
@@ -34,8 +35,19 @@ class Env01Core(EnvCore):
     
     """
     
-    def __init__(self):
+    _STATE_DICT_ATTR_LIST = [
+        '_curr_tick', 'curr_round_tick', 'curr_round',
+        'tick_reward', 'round_reward', 'end_of_round',
+        'map_shape', 'wall_coords', 'player_coords',
+        'food_coords', 'move_count', 'num_round_collisions',
+        'ticks_per_round', 'next_action']
+    
+    def __init__(self, state_dict: dict = None):
         super().__init__()
+        
+        # auto_load_state_dict requires every attribute presented in the
+        # state_dict has a existing attribute in the object.
+        
         # --------------- Attributes for Read-only -----------
         # They represent the state of the environment for users to check. 
         # Do NOT modify them.
@@ -45,6 +57,15 @@ class Env01Core(EnvCore):
         self.curr_round = 0
         self.tick_reward = 0
         self.round_reward = 0
+        
+        self.map_shape = None
+        self.wall_coords = None
+        self.player_coords = None
+        self.food_coords = None
+        self.move_count = 0
+        self.num_round_collisions = 0
+        self.ticks_per_round = None
+        self.next_action = None
         
         # ----------------- Interactive attributes ----------------
         # These attributes are open to read and write in certain conditions
@@ -56,6 +77,11 @@ class Env01Core(EnvCore):
         # One may manually set this flag between 'evolve' and 'next_tick'
         # to trigger the resetting.
         self.end_of_round = False
+        
+        # -----------------
+        
+        if state_dict:
+            auto_load_state_dict(self, state_dict)
     
     def new_simulation(self):
         self._create_new_round()
@@ -150,22 +176,5 @@ class Env01Core(EnvCore):
         pass
     
     def state_dict(self) -> dict:
-        sd = dict()
-        sd['_curr_tick'] = self._curr_tick
-        sd['curr_round_tick'] = self.curr_round_tick
-        sd['curr_round'] = self.curr_round
-        sd['tick_reward'] = self.tick_reward
-        sd['round_reward'] = self.round_reward
-        sd['end_of_round'] = self.end_of_round
-        sd['map_shape'] = self.map_shape
-        sd['wall_coords'] = self.wall_coords
-        sd['player_coords'] = self.player_coords
-        sd['food_coords'] = self.food_coords
-        sd['move_count'] = self.move_count
-        sd['num_round_collisions'] = self.num_round_collisions
-        sd['ticks_per_round'] = self.ticks_per_round
-        return sd
-    
-    def load_state_dict(self, sd) -> None:
-        for key, val in sd.items():
-            setattr(self, key, val)
+        return auto_make_state_dict(self, self._STATE_DICT_ATTR_LIST)
+

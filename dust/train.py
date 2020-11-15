@@ -84,11 +84,9 @@ def train():
         if f.env.curr_tick() % 1000 == 0:
             sd = f.state_dict()
             assert isinstance(sd, dict)
+            #show_state_dict_content(sd)
             with open('data.pickle', 'wb') as file_obj:
                 pickle.dump(sd, file_obj)
-            #show_state_dict_content(sd)
-            #break
-        
 
 if __name__ == '__main__':
     

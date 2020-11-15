@@ -5,12 +5,14 @@ from dust.utils import np_utils
 
 class Env01Stub(EnvAIStub):
     
-    def __init__(self, env):
-        #assert isinstance(env, Env01)
+    def __init__(self, env, state_dict: dict = None):
+        if state_dict is not None:
+            assert isinstance(state_dict, dict) and len(state_dict) == 0
         self.env = env
         self.obs_dim = 25
         self.act_dim = 4
         self.net_size = (16,16)
+        
 
     def get_observation(self):
         """ Extract observation from the current env
@@ -44,8 +46,5 @@ class Env01Stub(EnvAIStub):
         self.env.end_of_round = val
     
     def state_dict(self) -> dict:
+        # Yes, no state
         return {}
-    
-    def load_state_dict(self, sd) -> None:
-        assert len(sd) == 0
-        

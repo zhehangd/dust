@@ -49,7 +49,11 @@ def step(pi_model, v_model, obs, a=None):
 
 class PrototypeAIEngine(ai_engine.AIEngine):
     
-    def __init__(self, ai_stub, freeze):
+    _STATE_DICT_ATTR_LIST = [
+            'pi_model', 'v_model', 'buf', 'trainer',
+            'curr_epoch_tick', 'curr_epoch', 'epoch_reward', 'epoch_num_rounds']
+    
+    def __init__(self, ai_stub, freeze, state_dict=None):
         self.ai_stub = ai_stub
         proj = _dust.project()
         
@@ -77,6 +81,9 @@ class PrototypeAIEngine(ai_engine.AIEngine):
         self.curr_epoch = 0
         self.epoch_reward = 0 # reward collected in the epoch (NOT round)
         self.epoch_num_rounds = 0
+        
+        if state_dict:
+            auto_load_state_dict(self, state_dict)
     
     def perceive_and_act(self):
         
@@ -97,6 +104,7 @@ class PrototypeAIEngine(ai_engine.AIEngine):
             a, v, logp, obs = self.ac_data
             r = self.ai_stub.tick_reward
             self.buf.store(obs, a, r, v, logp)
+            del self.ac_data
         
         def _update_round():
             if forced_round_end:
@@ -157,11 +165,4 @@ class PrototypeAIEngine(ai_engine.AIEngine):
                 self.curr_epoch_tick += 1
     
     def state_dict(self) -> dict:
-        attr_list = ['pi_model', 'v_model', 'buf', 'trainer']
-        attr_list += ['ai_stub']
-        attr_list += ['curr_epoch_tick', 'curr_epoch', 'epoch_reward', 'epoch_num_rounds']
-        return auto_make_state_dict(self, attr_list)
-    
-    def load_state_dict(self, sd) -> None:
-        self.pi_model.load_state_dict(sd['pi_model'])
-        self.v_model.load_state_dict(sd['v_model'])
+        return auto_make_state_dict(self, self._STATE_DICT_ATTR_LIST)

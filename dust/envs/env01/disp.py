@@ -26,7 +26,7 @@ def _make_polygon(tl, br):
 
 class Disp(EnvDisplay):
     
-    def __init__(self, env_core, env_ai_stub):
+    def __init__(self, env_core, env_ai_stub, state_dict: dict = None):
         self.env = env_core
     
     def init(self):

@@ -3,21 +3,10 @@ import logging
 
 class _EnvComponent(object):
     
-    def __init__(self):
-        pass
-    
-    def state_dict(self):
+    def state_dict(self) -> dict:
         """ Returns a state dict storing the state of the object.
         Returns:
             A dict type object
-        """
-        raise NotImplementedError()
-    
-    def load_state_dict(self, sd):
-        """ Loads a state dict.
-        
-        Args:
-            sd (dict): The state dict.
         """
         raise NotImplementedError()
 
@@ -36,13 +25,6 @@ class EnvCore(_EnvComponent):
         end_of_round (bool): Indicates the current round is about to end.
     
     """
-    
-    def __init__(self):
-        pass
-    
-    #@staticmethod
-    #def new_instance(state_dict: dict = None) -> EnvCore:
-    #    raise NotImplementedError()
     
     def new_simulation(self) -> None:
         """ Creates a new simulation
@@ -64,13 +46,6 @@ class EnvCore(_EnvComponent):
     
     def curr_tick(self) -> int:
         raise NotImplementedError()
-    
-    def state_dict(self) -> dict:
-        raise NotImplementedError()
-    
-    def load_state_dict(self, sd) -> None:
-        raise NotImplementedError()
-        
 
 class EnvAIStub(_EnvComponent):
     """ Base class of AI Stub
@@ -87,9 +62,6 @@ class EnvAIStub(_EnvComponent):
     Attributes:
     
     """
-    
-    def __init__(self, env):
-        pass
     
     def get_observation(self) -> None:
         raise NotImplementedError()
@@ -108,12 +80,6 @@ class EnvAIStub(_EnvComponent):
     @end_of_round.setter
     def end_of_round(self, val) -> None:
         raise NotImplementedError()
-    
-    def state_dict(self) -> dict:
-        raise NotImplementedError()
-    
-    def load_state_dict(self, sd) -> None:
-        raise NotImplementedError()
 
 class EnvDisplay(_EnvComponent):
     """ Base class of AI Stub
@@ -129,11 +95,8 @@ class EnvDisplay(_EnvComponent):
     
     """
     
-    def __init__(self):
-        pass
-    
     def init(self):
-        pass
+        raise NotImplementedError()
     
     def render(self):
-        pass
+        raise NotImplementedError()

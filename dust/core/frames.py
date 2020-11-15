@@ -16,11 +16,16 @@ class DustFrame(object):
         ai_engine_name (str):
     
     """
-        
+    
     def state_dict(self) -> dict:
-        attr_list = ['env', 'ai', 'env_name', 'ai_engine_name']
-        sd = state_dict.auto_make_state_dict(self, attr_list)
+        sd = {}
         sd['verion'] = 'dev'
+        sd['env_name'] = self.env_name
+        sd['ai_engine_name'] = self.ai_engine_name
+        sd['env_core'] = self._env_core.state_dict()
+        sd['env_ai_stub'] = self._env_ai_stub.state_dict()
+        sd['ai_engine'] = self._ai_engine.state_dict()
+        
         return sd
     
     def load_state_dict(self, sd: dict) -> None:
@@ -28,7 +33,57 @@ class DustFrame(object):
         raise NotImplementedError()
     
     @staticmethod
-    def create_training_frames(env_name: str, ai_engine_name: str) -> tuple:
+    def _create_frames(env_name: str, ai_engine_name: str, is_train: bool, state_dict: dict):
+        """
+        
+        env_name and ai_engine_name overwrites the items in state_dict
+        
+        """
+        env_record = _ENV_REGISTRY[env_name]
+        
+        env_core_sd = state_dict['env_core'] if state_dict else None
+        env_core = env_record._create_env(
+            state_dict=env_core_sd)
+        assert isinstance(env_core, EnvCore), type(env_core)
+        env_frame = EnvFrame(env_core)
+        
+        env_ai_stub_sd = state_dict['env_ai_stub'] if state_dict else None
+        env_ai_stub = env_record._create_ai_stub(
+            env_core, state_dict=env_ai_stub_sd)
+        assert isinstance(env_ai_stub, EnvAIStub), type(env_ai_stub)
+        
+        ai_engine_record = _AI_ENGINE_REGISTRY[ai_engine_name]
+        
+        ai_engine_sd = state_dict['ai_engine'] if state_dict else None
+        ai_engine = ai_engine_record._create_instance(
+            env_ai_stub, not is_train, state_dict=ai_engine_sd)
+        assert isinstance(ai_engine, AIEngine), type(ai_engine)
+        ai_frame = AIFrame(ai_engine)
+        
+        if not is_train:
+            env_disp = env_record._create_disp(env_core, env_ai_stub)
+            assert isinstance(env_disp, EnvDisplay), type(env_disp)
+            disp_frame = DispFrame(env_disp)
+        
+        f = DustFrame()
+        f.env_name = env_name
+        f.ai_engine_name = ai_engine_name
+        
+        f.env = env_frame
+        f.ai = ai_frame
+        
+        f._env_core = env_core
+        f._env_ai_stub = env_ai_stub
+        f._ai_engine = ai_engine
+        
+        if not is_train:
+            f.disp = disp_frame
+            f._env_disp = env_disp
+        
+        return f
+    
+    @staticmethod
+    def create_training_frames(env_name: str, ai_engine_name: str):
         """ Creates a set of frames for training
         
         This function instantiates an environment and an AI engine,
@@ -43,28 +98,11 @@ class DustFrame(object):
         Returns:
             frames (tuple): An environment frame and an AI frame
         """
-        env_record = _ENV_REGISTRY[env_name]
-        env_core = env_record._create_env()
-        assert isinstance(env_core, EnvCore), type(env_core)
-        env_frame = EnvFrame(env_core)
-        
-        env_ai_stub = env_record._create_ai_stub(env_core)
-        assert isinstance(env_ai_stub, EnvAIStub), type(env_ai_stub)
-        
-        ai_engine_record = _AI_ENGINE_REGISTRY[ai_engine_name]
-        ai_engine = ai_engine_record._create_instance(env_ai_stub, False)
-        assert isinstance(ai_engine, AIEngine), type(ai_engine)
-        ai_frame = AIFrame(ai_engine)
-        
-        f = DustFrame()
-        f.env = env_frame
-        f.ai = ai_frame
-        f.env_name = env_name
-        f.ai_engine_name = ai_engine_name
-        return f
+        return DustFrame._create_frames(env_name, ai_engine_name, True, None)
+    
 
     @staticmethod
-    def create_demo_frames(env_name: str, ai_engine_name: str) -> tuple:
+    def create_demo_frames(env_name: str, ai_engine_name: str):
         """ Creates a set of frames for training
         
         This function instantiates an environment and an AI engine,
@@ -79,41 +117,23 @@ class DustFrame(object):
         Returns:
             frames (tuple): An environment frame, an AI frame, and a display frame
         """
-        env_record = _ENV_REGISTRY[env_name]
-        env_core = env_record._create_env()
-        assert isinstance(env_core, EnvCore), type(env_core)
-        env_frame = EnvFrame(env_core)
-        
-        env_ai_stub = env_record._create_ai_stub(env_core)
-        assert isinstance(env_ai_stub, EnvAIStub), type(env_ai_stub)
-        
-        ai_engine_record = _AI_ENGINE_REGISTRY[ai_engine_name]
-        ai_engine = ai_engine_record._create_instance(env_ai_stub, True)
-        assert isinstance(ai_engine, AIEngine), type(ai_engine)
-        ai_frame = AIFrame(ai_engine)
-        
-        env_disp = env_record._create_disp(env_core, env_ai_stub)
-        assert isinstance(env_disp, EnvDisplay), type(env_disp)
-        disp_frame = DispFrame(env_disp)
-        
-        f = DustFrame()
-        f.env = env_frame
-        f.ai = ai_frame
-        f.disp = disp_frame
-        f.env_name = env_name
-        f.ai_engine_name = ai_engine_name
-        return f
+        return DustFrame._create_frames(env_name, ai_engine_name, False, state_dict)
     
     @staticmethod
     def create_training_frames_from_save(filename):
         with open(filename, 'rb') as f:
-            sd = pickle.loads(f.read())
-        assert isinstance(sd, dict)
-        assert sd['version'] == 'dev'
-        env_name = sd['env_name']
-        env_record = _ENV_REGISTRY[env_name]
-        
+            state_dict = pickle.loads(f.read())
+        assert isinstance(state_dict, dict)
+        assert state_dict['version'] == 'dev'
+        return DustFrame._create_frames(None, None, True, state_dict)
 
+    @staticmethod
+    def create_demo_frames_from_save(filename):
+        with open(filename, 'rb') as f:
+            state_dict = pickle.loads(f.read())
+        assert isinstance(state_dict, dict)
+        assert state_dict['version'] == 'dev'
+        return DustFrame._create_frames(None, None, False, state_dict)
 
 class EnvFrame(object):
     """ Interface to interact with an environment
@@ -129,18 +149,6 @@ class EnvFrame(object):
         logging.info('Creating a new simulation')
         self.env_core.new_simulation()
     
-    def state_dict(self) -> dict:
-        """ Returns the state dict of the environment.
-        """
-        logging.info('Exporting environment state')
-        return self.env_core.state_dict()
-    
-    def load_state_dict(self, sd: dict) -> None:
-        """ Loads state from a state dict.
-        """
-        logging.info('Importing environment state')
-        raise NotImplementedError()
-    
     def next_tick(self):
         self.env_core.next_tick()
         
@@ -150,7 +158,6 @@ class EnvFrame(object):
     def evolve(self) -> None:
         """ Executes one-tick simulation
         """
-        # TODO: better name?
         self.env_core.evolve()
     
     def update(self) -> None:
@@ -173,18 +180,6 @@ class AIFrame(object):
         """
         self.ai_engine.update()
 
-    def state_dict(self) -> dict:
-        """ Returns the state dict of the environment.
-        """
-        logging.info('Exporting AI engine state')
-        return self.ai_engine.state_dict()
-    
-    def load_state_dict(self, sd: dict) -> None:
-        """ Loads state from a state dict.
-        """
-        logging.info('Importing AI engine state')
-        raise NotImplementedError()
-    
 class DispFrame(object):
     """ Interface to display system
     """
