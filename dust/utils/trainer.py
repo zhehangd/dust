@@ -72,27 +72,46 @@ class Trainer(object):
     
     """
     def __init__(self, pi_model, v_model):
-        self.v_model = v_model
-        self.pi_model = pi_model
+        self._v_model = v_model
+        self._pi_model = pi_model
         self.clip_ratio = 0.2
         self.target_kl = 0.01
         self.train_pi_iters = 80
         self.train_v_iters = 80
         self.create_optimizer()
     
+    
+    def state_dict(self) -> dict:
+        sd = dict()
+        sd['clip_ratio'] = self.clip_ratio
+        sd['target_kl'] = self.target_kl
+        sd['train_pi_iters'] = self.train_pi_iters
+        sd['train_v_iters'] = self.train_v_iters
+        sd['pi_optim'] = self.pi_optim.state_dict()
+        sd['vf_optim'] = self.vf_optim.state_dict()
+        return sd
+    
+    def load_state_dict(self, sd) -> None:
+        self.clip_ratio = sd['clip_ratio']
+        self.target_kl = sd['target_kl']
+        self.train_pi_iters = sd['train_pi_iters']
+        self.train_v_iters = sd['train_v_iters']
+        self.pi_optim.load_state_dict(sd['pi_optim'])
+        self.vf_optim.load_state_dict(sd['vf_optim'])
+    
     def create_optimizer(self, pi_lr=3e-4, vf_lr=1e-3):
-        self.pi_optim = Adam(self.pi_model.parameters(), lr=pi_lr)
-        self.vf_optim = Adam(self.v_model.parameters(), lr=vf_lr)
+        self.pi_optim = Adam(self._pi_model.parameters(), lr=pi_lr)
+        self.vf_optim = Adam(self._v_model.parameters(), lr=vf_lr)
     
     def compute_loss_pi(self, data):
         """ Computes the policy loss and caches the gradient info
         """
-        return _compute_loss_pi(self.pi_model, data, self.clip_ratio)
+        return _compute_loss_pi(self._pi_model, data, self.clip_ratio)
 
     def compute_loss_v(self, data):
         """ Computes the value loss and caches the gradient info
         """
-        return _compute_loss_v(self.v_model, data)
+        return _compute_loss_v(self._v_model, data)
     
     def update_policy_gradient(self, data):
         kl_thres = 1.5 * self.target_kl

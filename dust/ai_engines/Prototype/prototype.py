@@ -14,6 +14,7 @@ from dust.utils import np_utils
 from dust.utils.su_core import create_default_actor_crtic
 from dust.utils.ppo_buffer import PPOBuffer
 from dust.utils.trainer import Trainer
+from dust.utils.state_dict import auto_make_state_dict, auto_load_state_dict
 
 _argparser = _dust.argparser()
 
@@ -49,7 +50,6 @@ def step(pi_model, v_model, obs, a=None):
 class PrototypeAIEngine(ai_engine.AIEngine):
     
     def __init__(self, ai_stub, freeze):
-        self.num_players = 1
         self.ai_stub = ai_stub
         proj = _dust.project()
         
@@ -78,7 +78,7 @@ class PrototypeAIEngine(ai_engine.AIEngine):
         self.epoch_reward = 0 # reward collected in the epoch (NOT round)
         self.epoch_num_rounds = 0
     
-    def act(self):
+    def perceive_and_act(self):
         
         obs = self.ai_stub.get_observation()
         obs_tensor = torch.as_tensor(obs, dtype=torch.float32)
@@ -86,7 +86,6 @@ class PrototypeAIEngine(ai_engine.AIEngine):
         #    obs_tensor = obs_tensor.cuda()
         a, v, logp = step(self.pi_model, self.v_model, obs_tensor)
         
-        #self.env.set_action(np.random.randint(0, 4, self.num_players))
         self.ai_stub.set_action(a)
         self.ac_data = (a, v, logp, obs)
     
@@ -157,5 +156,12 @@ class PrototypeAIEngine(ai_engine.AIEngine):
             else:
                 self.curr_epoch_tick += 1
     
-
-        
+    def state_dict(self) -> dict:
+        attr_list = ['pi_model', 'v_model', 'buf', 'trainer']
+        attr_list += ['ai_stub']
+        attr_list += ['curr_epoch_tick', 'curr_epoch', 'epoch_reward', 'epoch_num_rounds']
+        return auto_make_state_dict(self, attr_list)
+    
+    def load_state_dict(self, sd) -> None:
+        self.pi_model.load_state_dict(sd['pi_model'])
+        self.v_model.load_state_dict(sd['v_model'])

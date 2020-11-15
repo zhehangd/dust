@@ -57,6 +57,16 @@ class EnvCore(_EnvComponent):
     
     def next_tick(self) -> None:
         raise NotImplementedError()
+    
+    def curr_tick(self) -> int:
+        raise NotImplementedError()
+    
+    def state_dict(self) -> dict:
+        raise NotImplementedError()
+    
+    def load_state_dict(self, sd) -> None:
+        raise NotImplementedError()
+        
 
 class EnvAIStub(_EnvComponent):
     """ Base class of AI Stub
@@ -93,6 +103,12 @@ class EnvAIStub(_EnvComponent):
     
     @end_of_round.setter
     def end_of_round(self, val) -> None:
+        raise NotImplementedError()
+    
+    def state_dict(self) -> dict:
+        raise NotImplementedError()
+    
+    def load_state_dict(self, sd) -> None:
         raise NotImplementedError()
 
 class EnvDisplay(_EnvComponent):

@@ -3,12 +3,14 @@ import time
 import os
 import sys
 
+import pickle
+
 import numpy as np
 
 from dust import _dust
 from dust.utils import utils
 
-class SimTimer(object):
+class MainLoopTimer(object):
     
     def __init__(self, start_epoch):
         self.time_count = 0
@@ -45,36 +47,45 @@ def train():
     
     env_name = proj.args.env
     engine_name = proj.args.engine
-    env_frame, ai_frame = _dust.create_training_frames(env_name, engine_name)
-    env_frame.new_simulation()
+    f = _dust.DustFrame.create_training_frames(env_name, engine_name)
+    f.env.new_simulation()
     
-    t = SimTimer(0)
-    while True:
+    t = MainLoopTimer(0)
+    while f.env.curr_tick() < proj.args.target_tick:
 
         with t.section('env-next-tick'):
-            env_frame.next_tick()
+            f.env.next_tick()
         
         # Agents observe the environment and take action
         with t.section('agent-act'):
-            ai_frame.perceive_and_act()
+            f.ai.perceive_and_act()
         
         # Environment evolves
         with t.section('env-evolve'):
-            env_frame.evolve()
+            f.env.evolve()
         
         # Agents get the feedback from the environment
         # and update themselves
         with t.section('agent-update'):
-            ai_frame.update()
+            f.ai.update()
         
         # Environment update its data and move to the
         # state of the next tick
         with t.section('env-update'):
-            env_frame.update()
+            f.env.update()
         
         t.finish_iteration()
         if t.time_count >= proj.args.timing_ticks:
             logging.info(t.generate_report_and_reset())
+            
+        
+        if f.env.curr_tick() % 1000 == 0:
+            sd = f.state_dict()
+            assert isinstance(sd, dict)
+            with open('data.pickle', 'wb') as file_obj:
+                pickle.dump(sd, file_obj)
+            break
+        
 
 if __name__ == '__main__':
     
@@ -94,6 +105,12 @@ if __name__ == '__main__':
         '--engine', 
         default='prototype',
         help='AI engine to use')
+    
+    _argparser.add_argument(
+        '--target_tick', 
+        default=50000,
+        help='Train until reaching the given tick')
+    
     
     try:
         sys.stderr.write('Initializing dust\n')

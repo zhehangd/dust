@@ -14,7 +14,7 @@ class AIEngine(object):
         """
         pass
     
-    def act(self) -> None:
+    def perceive_and_act(self) -> None:
         raise NotImplementedError()
 
     def update(self) -> None:

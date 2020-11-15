@@ -22,10 +22,10 @@ def demo():
     
     env_name = proj.args.env
     engine_name = proj.args.engine
-    env_frame, ai_frame, disp_frame = _dust.create_demo_frames(env_name, engine_name)
-    env_frame.new_simulation()
+    f = _dust.DustFrame.create_demo_frames(env_name, engine_name)
+    f.env.new_simulation()
     
-    ai_engine = ai_frame.ai_engine
+    ai_engine = f.ai.ai_engine
     
     assert ai_engine.pi_model is not None
     assert ai_engine.v_model is not None
@@ -33,15 +33,15 @@ def demo():
     ai_engine.pi_model = net_data['pi_model']
     ai_engine.v_model = net_data['v_model']
     
-    disp_frame.init()
-    disp_frame.render()
+    f.disp.init()
+    f.disp.render()
     while True:
-        env_frame.next_tick()
-        ai_frame.perceive_and_act()
-        env_frame.evolve()
-        ai_frame.update()
-        env_frame.update()
-        disp_frame.render()
+        f.env.next_tick()
+        f.ai.perceive_and_act()
+        f.env.evolve()
+        f.ai.update()
+        f.env.update()
+        f.disp.render()
         time.sleep(0.03)
 
 if __name__ == '__main__':

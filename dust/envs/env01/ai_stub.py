@@ -42,4 +42,10 @@ class Env01Stub(EnvAIStub):
     @end_of_round.setter
     def end_of_round(self, val) -> None:
         self.env.end_of_round = val
+    
+    def state_dict(self) -> dict:
+        return {}
+    
+    def load_state_dict(self, sd) -> None:
+        assert len(sd) == 0
         

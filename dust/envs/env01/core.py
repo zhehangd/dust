@@ -40,7 +40,7 @@ class Env01Core(EnvCore):
         # They represent the state of the environment for users to check. 
         # Do NOT modify them.
         
-        self.curr_tick = 0
+        self._curr_tick = 0
         self.curr_round_tick = 0
         self.curr_round = 0
         self.tick_reward = 0
@@ -101,9 +101,12 @@ class Env01Core(EnvCore):
             self.curr_round += 1
             self._create_new_round()
         self.tick_reward = 0
-        self.curr_tick += 1
+        self._curr_tick += 1
         self.curr_round_tick += 1
     
+    def curr_tick(self):
+        return self._curr_tick
+        
     def evolve(self):
         actions = self.next_action
         move_coords = self.player_coords + _MOVE_LUT[actions]
@@ -145,4 +148,24 @@ class Env01Core(EnvCore):
     
     def update(self):
         pass
-
+    
+    def state_dict(self) -> dict:
+        sd = dict()
+        sd['_curr_tick'] = self._curr_tick
+        sd['curr_round_tick'] = self.curr_round_tick
+        sd['curr_round'] = self.curr_round
+        sd['tick_reward'] = self.tick_reward
+        sd['round_reward'] = self.round_reward
+        sd['end_of_round'] = self.end_of_round
+        sd['map_shape'] = self.map_shape
+        sd['wall_coords'] = self.wall_coords
+        sd['player_coords'] = self.player_coords
+        sd['food_coords'] = self.food_coords
+        sd['move_count'] = self.move_count
+        sd['num_round_collisions'] = self.num_round_collisions
+        sd['ticks_per_round'] = self.ticks_per_round
+        return sd
+    
+    def load_state_dict(self, sd) -> None:
+        for key, val in sd.items():
+            setattr(self, key, val)
