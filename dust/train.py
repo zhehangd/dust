@@ -10,6 +10,8 @@ import numpy as np
 from dust import _dust
 from dust.utils import utils
 
+from dust.utils.state_dict import show_state_dict_content
+
 class MainLoopTimer(object):
     
     def __init__(self, start_epoch):
@@ -84,7 +86,8 @@ def train():
             assert isinstance(sd, dict)
             with open('data.pickle', 'wb') as file_obj:
                 pickle.dump(sd, file_obj)
-            break
+            #show_state_dict_content(sd)
+            #break
         
 
 if __name__ == '__main__':

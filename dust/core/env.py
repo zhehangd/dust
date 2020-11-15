@@ -40,6 +40,10 @@ class EnvCore(_EnvComponent):
     def __init__(self):
         pass
     
+    #@staticmethod
+    #def new_instance(state_dict: dict = None) -> EnvCore:
+    #    raise NotImplementedError()
+    
     def new_simulation(self) -> None:
         """ Creates a new simulation
         """

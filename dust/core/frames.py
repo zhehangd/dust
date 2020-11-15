@@ -3,6 +3,7 @@ import logging
 from dust.core.init import _ENV_REGISTRY, _AI_ENGINE_REGISTRY
 from dust.core.env import EnvCore, EnvAIStub, EnvDisplay
 from dust.core.ai_engine import AIEngine
+from dust.utils import state_dict
 
 class DustFrame(object):
     """
@@ -17,16 +18,14 @@ class DustFrame(object):
     """
         
     def state_dict(self) -> dict:
-        sd = dict()
+        attr_list = ['env', 'ai', 'env_name', 'ai_engine_name']
+        sd = state_dict.auto_make_state_dict(self, attr_list)
         sd['verion'] = 'dev'
-        sd['env_frame'] = self.env.state_dict()
-        sd['ai_frame'] = self.ai.state_dict()
-        sd['env_name'] = self.env_name
-        sd['ai_engine_name'] = self.ai_engine_name
         return sd
     
     def load_state_dict(self, sd: dict) -> None:
         assert sd['version'] == 'dev'
+        raise NotImplementedError()
     
     @staticmethod
     def create_training_frames(env_name: str, ai_engine_name: str) -> tuple:
@@ -109,6 +108,10 @@ class DustFrame(object):
     def create_training_frames_from_save(filename):
         with open(filename, 'rb') as f:
             sd = pickle.loads(f.read())
+        assert isinstance(sd, dict)
+        assert sd['version'] == 'dev'
+        env_name = sd['env_name']
+        env_record = _ENV_REGISTRY[env_name]
         
 
 

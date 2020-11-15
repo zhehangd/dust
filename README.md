@@ -16,6 +16,6 @@ python -m dust.train
 ## Unit Test
 
 ```
-python -m unittest discover dust
+pytest
 ```
 
