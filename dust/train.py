@@ -12,6 +12,7 @@ from dust import _dust
 from dust.utils import utils
 from dust.utils.utils import FindTimestampedFile
 from dust.utils.state_dict import show_state_dict_content
+from dust.utils.dynamic_save import DynamicSave
 
 class MainLoopTimer(object):
     
@@ -57,6 +58,8 @@ def train():
         f = _dust.DustFrame.create_training_frames(env_name, engine_name)
         f.env.new_simulation()
     
+    save = DynamicSave(f.env.curr_tick(), 1000, 10)
+    
     t = MainLoopTimer(0)
     while f.env.curr_tick() < proj.args.target_tick:
 
@@ -85,13 +88,15 @@ def train():
         if t.time_count >= proj.args.timing_ticks:
             logging.info(t.generate_report_and_reset())
         
-        if f.env.curr_tick() % 10000 == 0:
-            logging.info('Saving to {}'.format())
+        if save.next_update_tick == f.env.curr_tick():
+            
             #show_state_dict_content(sd)
             #save_filename = 'saves/{}-{}.pickle'.format(proj.time_tag, f.env.curr_tick())
             save_filename = 'saves/save.{}.pickle'.format(
                 datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S'))
+            logging.info('Saving to {}'.format(save_filename))
             f.save(save_filename)
+            save.add_save(save_filename, f.env.curr_tick())
 
 if __name__ == '__main__':
     
@@ -99,7 +104,7 @@ if __name__ == '__main__':
 
     _argparser.add_argument(
         '--timing_ticks',
-        type=int, default=10000,
+        type=int, default=16000,
         help='Number of ticks between each timing')
 
     _argparser.add_argument(
