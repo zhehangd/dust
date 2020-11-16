@@ -122,9 +122,9 @@ class Trainer(object):
             #kl = mpi_avg(pi_info['kl'])
             kl = pi_info['kl']
             if kl > kl_thres:
-                logging.info(
-                    'Pi iteration stopped at step {} '\
-                    'due to reaching max kl {} > {}.'.format(i, kl, kl_thres))
+                #logging.info(
+                #    'Pi iteration stopped at step {} '\
+                #    'due to reaching max kl {} > {}.'.format(i, kl, kl_thres))
                 #show_logp_change()
                 break
             loss_pi.backward()

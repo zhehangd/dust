@@ -1,3 +1,4 @@
+import datetime
 import logging
 import time
 import os
@@ -9,7 +10,7 @@ import numpy as np
 
 from dust import _dust
 from dust.utils import utils
-
+from dust.utils.utils import FindTimestampedFile
 from dust.utils.state_dict import show_state_dict_content
 
 class MainLoopTimer(object):
@@ -47,10 +48,14 @@ def init():
 def train():
     proj = _dust.project()
     
-    env_name = proj.args.env
-    engine_name = proj.args.engine
-    f = _dust.DustFrame.create_training_frames(env_name, engine_name)
-    f.env.new_simulation()
+    if proj.args.cont:
+        save_filename = FindTimestampedFile('saves', 'save.*.pickle').get_latest_file()
+        f = _dust.DustFrame.create_training_frames_from_save(save_filename)
+    else:
+        env_name = proj.args.env
+        engine_name = proj.args.engine
+        f = _dust.DustFrame.create_training_frames(env_name, engine_name)
+        f.env.new_simulation()
     
     t = MainLoopTimer(0)
     while f.env.curr_tick() < proj.args.target_tick:
@@ -79,14 +84,14 @@ def train():
         t.finish_iteration()
         if t.time_count >= proj.args.timing_ticks:
             logging.info(t.generate_report_and_reset())
-            
         
-        if f.env.curr_tick() % 1000 == 0:
-            sd = f.state_dict()
-            assert isinstance(sd, dict)
+        if f.env.curr_tick() % 10000 == 0:
+            logging.info('Saving to {}'.format())
             #show_state_dict_content(sd)
-            with open('data.pickle', 'wb') as file_obj:
-                pickle.dump(sd, file_obj)
+            #save_filename = 'saves/{}-{}.pickle'.format(proj.time_tag, f.env.curr_tick())
+            save_filename = 'saves/save.{}.pickle'.format(
+                datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S'))
+            f.save(save_filename)
 
 if __name__ == '__main__':
     
@@ -112,6 +117,10 @@ if __name__ == '__main__':
         default=50000,
         help='Train until reaching the given tick')
     
+    _argparser.add_argument(
+        '--cont',
+        type=bool, default=False,
+        help='Continue training')
     
     try:
         sys.stderr.write('Initializing dust\n')

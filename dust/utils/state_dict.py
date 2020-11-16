@@ -18,7 +18,7 @@ def auto_make_state_dict(obj, attr_names):
     return sd
 
 def auto_load_state_dict(obj, sd):
-    for attr_name, attr_data in sd:
+    for attr_name, attr_data in sd.items():
         # Attr must exist. Otherwise, we may end up with
         # assigning the state dict to that attribute.
         assert hasattr(obj, attr_name)
@@ -26,8 +26,7 @@ def auto_load_state_dict(obj, sd):
         if hasattr(attr, 'load_state_dict'):
             attr.load_state_dict(attr_data)
         else:
-            # TODO does this bring any inconvenicne?
-            assert type(attr) == type(attr_data)
+            #assert type(attr) == type(attr_data), '{}, {}'.format(attr, attr_data)
             setattr(obj, attr_name, attr_data)
 
 def _make_object_summary(obj):

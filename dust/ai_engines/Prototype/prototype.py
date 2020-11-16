@@ -128,11 +128,6 @@ class PrototypeAIEngine(ai_engine.AIEngine):
                 DeltaLossPi=delta_loss_pi,
                 DeltaLossV=delta_loss_v)
         
-        def _save_actor_critic():
-            proj = _dust.project()
-            net_file = os.path.join(proj.proj_dir, 'network.pth')
-            torch.save({'pi_model': self.pi_model, 'v_model': self.v_model}, net_file)
-        
         if self.training:
             _update_tick()
             
@@ -152,10 +147,6 @@ class PrototypeAIEngine(ai_engine.AIEngine):
                 
                 _update_epoch()
                 self.progress.finish_line()
-                
-                if self.curr_epoch % 10 == 0:
-                    _save_actor_critic()
-                    logging.info('saved actor critic')
                 
                 self.curr_epoch += 1
                 self.curr_epoch_tick = 0

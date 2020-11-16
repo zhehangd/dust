@@ -7,7 +7,7 @@ import torch
 
 from dust import _dust
 
-
+from dust.utils.utils import FindTimestampedFile
 
 def init():
     _dust.register_all_envs()
@@ -20,10 +20,8 @@ def demo():
     
     proj = _dust.project()
     
-    env_name = proj.args.env
-    engine_name = proj.args.engine
-    f = _dust.DustFrame.create_demo_frames(env_name, engine_name)
-    f.env.new_simulation()
+    save_filename = FindTimestampedFile('saves', 'save.*.pickle').get_latest_file()
+    f = _dust.DustFrame.create_demo_frames_from_save(save_filename)
     
     ai_engine = f.ai.ai_engine
     
@@ -47,16 +45,6 @@ def demo():
 if __name__ == '__main__':
     
     _argparser = _dust.argparser()
-
-    _argparser.add_argument(
-        '--env', 
-        default='env01',
-        help='Environment to use')
-
-    _argparser.add_argument(
-        '--engine', 
-        default='prototype',
-        help='AI engine to use')
     
     try:
         sys.stderr.write('Initializing dust\n')

@@ -1,4 +1,6 @@
 import logging
+import os
+import pickle
 
 from dust.core.init import _ENV_REGISTRY, _AI_ENGINE_REGISTRY
 from dust.core.env import EnvCore, EnvAIStub, EnvDisplay
@@ -19,7 +21,7 @@ class DustFrame(object):
     
     def state_dict(self) -> dict:
         sd = {}
-        sd['verion'] = 'dev'
+        sd['version'] = 'dev'
         sd['env_name'] = self.env_name
         sd['ai_engine_name'] = self.ai_engine_name
         sd['env_core'] = self._env_core.state_dict()
@@ -28,9 +30,10 @@ class DustFrame(object):
         
         return sd
     
-    def load_state_dict(self, sd: dict) -> None:
-        assert sd['version'] == 'dev'
-        raise NotImplementedError()
+    def save(self, filename):
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        with open(filename, 'wb') as f:
+            pickle.dump(self.state_dict(), f)
     
     @staticmethod
     def _create_frames(env_name: str, ai_engine_name: str, is_train: bool, state_dict: dict):
@@ -125,7 +128,9 @@ class DustFrame(object):
             state_dict = pickle.loads(f.read())
         assert isinstance(state_dict, dict)
         assert state_dict['version'] == 'dev'
-        return DustFrame._create_frames(None, None, True, state_dict)
+        env_name = state_dict['env_name']
+        ai_engine_name = state_dict['ai_engine_name']
+        return DustFrame._create_frames(env_name, ai_engine_name, True, state_dict)
 
     @staticmethod
     def create_demo_frames_from_save(filename):
@@ -133,7 +138,9 @@ class DustFrame(object):
             state_dict = pickle.loads(f.read())
         assert isinstance(state_dict, dict)
         assert state_dict['version'] == 'dev'
-        return DustFrame._create_frames(None, None, False, state_dict)
+        env_name = state_dict['env_name']
+        ai_engine_name = state_dict['ai_engine_name']
+        return DustFrame._create_frames(env_name, ai_engine_name, False, state_dict)
 
 class EnvFrame(object):
     """ Interface to interact with an environment
