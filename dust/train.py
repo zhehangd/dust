@@ -119,7 +119,7 @@ if __name__ == '__main__':
     
     _argparser.add_argument(
         '--target_tick', 
-        default=50000,
+        type=int, default=50000,
         help='Train until reaching the given tick')
     
     _argparser.add_argument(
