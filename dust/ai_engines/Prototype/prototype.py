@@ -50,7 +50,7 @@ def step(pi_model, v_model, obs, a=None):
 class PrototypeAIEngine(ai_engine.AIEngine):
     
     _STATE_DICT_ATTR_LIST = [
-            'pi_model', 'v_model', 'buf', 'trainer',
+            'pi_model', 'v_model', 'buf',
             'curr_epoch_tick', 'curr_epoch', 'epoch_reward', 'epoch_num_rounds']
     
     def __init__(self, ai_stub, freeze, state_dict=None):
@@ -72,7 +72,7 @@ class PrototypeAIEngine(ai_engine.AIEngine):
         pi_model, v_model = create_default_actor_crtic(obs_dim, act_dim, net_size)
         self.pi_model = pi_model
         self.v_model = v_model
-        self.trainer = Trainer(self.pi_model, self.v_model)
+        
         
         if self.training:
             self.progress = progress_log.ProgressLog()
@@ -84,6 +84,11 @@ class PrototypeAIEngine(ai_engine.AIEngine):
         
         if state_dict:
             auto_load_state_dict(self, state_dict)
+            self.trainer = Trainer.create_from_state_dict(
+                self.pi_model, self.v_model, state_dict['trainer'])
+        else:
+            self.trainer = Trainer.create_new_instance(
+                self.pi_model, self.v_model)
     
     def perceive_and_act(self):
         
@@ -156,4 +161,6 @@ class PrototypeAIEngine(ai_engine.AIEngine):
                 self.curr_epoch_tick += 1
     
     def state_dict(self) -> dict:
-        return auto_make_state_dict(self, self._STATE_DICT_ATTR_LIST)
+        sd = auto_make_state_dict(self, self._STATE_DICT_ATTR_LIST)
+        sd['trainer'] = self.trainer.state_dict()
+        return sd

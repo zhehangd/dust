@@ -71,15 +71,45 @@ class Trainer(object):
         clip_ratio: 
     
     """
-    def __init__(self, pi_model, v_model):
-        self._v_model = v_model
-        self._pi_model = pi_model
-        self.clip_ratio = 0.2
-        self.target_kl = 0.01
-        self.train_pi_iters = 80
-        self.train_v_iters = 80
-        self.create_optimizer()
     
+    DEFAULT_clip_ratio = 0.2
+    DEFAULT_target_kl = 0.01
+    DEFAULT_train_pi_iters = 80
+    DEFAULT_train_v_iters = 80
+    DEFAULT_pi_lr = 3e-4
+    DEFAULT_vf_lr = 1e-3
+    
+    def __init__(self, pi_model, v_model, pi_optim, vf_optim, clip_ratio, target_kl, train_pi_iters, train_v_iters):
+        self._pi_model = pi_model
+        self._v_model = v_model
+        self.clip_ratio = clip_ratio
+        self.target_kl = target_kl
+        self.train_pi_iters = train_pi_iters
+        self.train_v_iters = train_v_iters
+        self.pi_optim = pi_optim
+        self.vf_optim = vf_optim
+    
+    @classmethod
+    def create_new_instance(cls, pi_model, v_model):
+        pi_optim = Adam(pi_model.parameters(), lr=cls.DEFAULT_pi_lr)
+        vf_optim = Adam(v_model.parameters(), lr=cls.DEFAULT_vf_lr)
+        return cls(pi_model, v_model, pi_optim, vf_optim,
+                   cls.DEFAULT_clip_ratio,
+                   cls.DEFAULT_target_kl,
+                   cls.DEFAULT_train_pi_iters,
+                   cls.DEFAULT_train_v_iters)
+    
+    @classmethod
+    def create_from_state_dict(cls, pi_model, v_model, state_dict):
+        pi_optim = Adam(pi_model.parameters(), lr=cls.DEFAULT_pi_lr)
+        vf_optim = Adam(v_model.parameters(), lr=cls.DEFAULT_vf_lr)
+        pi_optim.load_state_dict(state_dict['pi_optim'])
+        vf_optim.load_state_dict(state_dict['vf_optim'])
+        return cls(pi_model, v_model, pi_optim, vf_optim,
+                   state_dict['clip_ratio'],
+                   state_dict['target_kl'],
+                   state_dict['train_pi_iters'],
+                   state_dict['train_v_iters'])
     
     def state_dict(self) -> dict:
         sd = dict()
@@ -90,18 +120,6 @@ class Trainer(object):
         sd['pi_optim'] = self.pi_optim.state_dict()
         sd['vf_optim'] = self.vf_optim.state_dict()
         return sd
-    
-    def load_state_dict(self, sd) -> None:
-        self.clip_ratio = sd['clip_ratio']
-        self.target_kl = sd['target_kl']
-        self.train_pi_iters = sd['train_pi_iters']
-        self.train_v_iters = sd['train_v_iters']
-        self.pi_optim.load_state_dict(sd['pi_optim'])
-        self.vf_optim.load_state_dict(sd['vf_optim'])
-    
-    def create_optimizer(self, pi_lr=3e-4, vf_lr=1e-3):
-        self.pi_optim = Adam(self._pi_model.parameters(), lr=pi_lr)
-        self.vf_optim = Adam(self._v_model.parameters(), lr=vf_lr)
     
     def compute_loss_pi(self, data):
         """ Computes the policy loss and caches the gradient info
