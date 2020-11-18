@@ -58,8 +58,12 @@ class DustFrame(object):
         ai_engine_record = _AI_ENGINE_REGISTRY[ai_engine_name]
         
         ai_engine_sd = state_dict['ai_engine'] if state_dict else None
-        ai_engine = ai_engine_record._create_instance(
-            env_ai_stub, not is_train, state_dict=ai_engine_sd)
+        
+        ai_engine_class = ai_engine_record._import_class()
+        if state_dict:
+            ai_engine = ai_engine_class.create_from_state_dict(env_ai_stub, state_dict, freeze=not is_train)
+        else:
+            ai_engine = ai_engine_class.create_new_instance(env_ai_stub, freeze=not is_train)
         assert isinstance(ai_engine, AIEngine), type(ai_engine)
         ai_frame = AIFrame(ai_engine)
         

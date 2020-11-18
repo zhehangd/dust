@@ -97,13 +97,13 @@ class AIEngineRecord(object):
     
     def __init__(self):
         self._name = ""
-        self._create_instance = None
+        self._import_class = None
         self._register_args = None
 
-def register_ai_engine(name: str, fn_create, fn_arugments) -> None:
+def register_ai_engine(name: str, fn_import_class, fn_arugments) -> None:
     record = EnvRecord()
     record._name = name
-    record._create_instance = fn_create
+    record._import_class = fn_import_class
     record._register_args = fn_arugments
     if hasattr(_AI_ENGINE_REGISTRY, name):
         raise RuntimeError('"{}" is a registered AI engine.'.format(name))

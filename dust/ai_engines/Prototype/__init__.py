@@ -2,13 +2,13 @@ import importlib
 
 from dust import _dust
 
-def _create_instance(*args, **kwargs):
+def _import_class():
     core_module = importlib.import_module(__package__ + '.prototype')
-    return core_module.PrototypeAIEngine(*args, **kwargs)
+    return core_module.PrototypeAIEngine
 
 def _register_args():
     pass
 
 _dust.register_ai_engine("prototype",
-    _create_instance, _register_args)
+    _import_class, _register_args)
  

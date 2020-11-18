@@ -8,7 +8,7 @@ import numpy as np
 import scipy.signal
 
 from dust import _dust
-from dust.core import ai_engine
+from dust.core.ai_engine import AIEngine
 from dust.core import progress_log
 from dust.utils import np_utils
 from dust.utils.su_core import create_default_actor_crtic
@@ -47,7 +47,7 @@ def step(pi_model, v_model, obs, a=None):
     assert a.shape == logp_a.shape
     return a, v, logp_a
 
-class PrototypeAIEngine(ai_engine.AIEngine):
+class PrototypeAIEngine(AIEngine):
     
     _STATE_DICT_ATTR_LIST = [
             'pi_model', 'v_model', 'buf',
@@ -62,7 +62,7 @@ class PrototypeAIEngine(ai_engine.AIEngine):
         #var_counts = tuple(count_vars(module) for module in [ac.pi, ac.v])
         #logging.info('\nNumber of parameters: \t pi: %d, \t v: %d\n'%var_counts)
         
-        self.training = not freeze
+        self.freeze_learning = freeze
         
         obs_dim = self.ai_stub.obs_dim
         act_dim = self.ai_stub.act_dim
@@ -74,7 +74,7 @@ class PrototypeAIEngine(ai_engine.AIEngine):
         self.v_model = v_model
         
         
-        if self.training:
+        if not self.freeze_learning:
             self.progress = progress_log.ProgressLog()
         
         self.curr_epoch_tick = 0
@@ -89,6 +89,16 @@ class PrototypeAIEngine(ai_engine.AIEngine):
         else:
             self.trainer = Trainer.create_new_instance(
                 self.pi_model, self.v_model)
+    
+    @classmethod
+    def create_new_instance(cls, ai_stub, **kwargs) -> AIEngine:
+        freeze = kwargs['freeze'] if hasattr(kwargs, 'freeze') else False
+        return cls(ai_stub, freeze)
+    
+    @classmethod
+    def create_from_state_dict(cls, ai_stub, state_dict, **kwargs) -> AIEngine:
+        freeze = kwargs['freeze'] if hasattr(kwargs, 'freeze') else False
+        return cls(ai_stub, freeze, state_dict)
     
     def perceive_and_act(self):
         
@@ -133,7 +143,7 @@ class PrototypeAIEngine(ai_engine.AIEngine):
                 DeltaLossPi=delta_loss_pi,
                 DeltaLossV=delta_loss_v)
         
-        if self.training:
+        if not self.freeze_learning:
             _update_tick()
             
             end_of_epoch = self.curr_epoch_tick + 1 == _EPOCH_LENGTH

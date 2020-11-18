@@ -4,15 +4,21 @@ class AIEngine(object):
     """ Base class of AI engines
     """
     
-    def __init__(self, ai_stub: EnvAIStub, freeze: bool):
+    def __init__(self):
         """
-        TODO: AI engine shouldn't see EnvCore
         Args:
-            env (EnvCore): environment core
             ai_stub (EnvAIStub): AI stub
             freeze (bool): Disable learning if True
         """
         pass
+    
+    @classmethod
+    def create_new_instance(cls, ai_stub, **kwargs) -> 'AIEngine':
+        raise NotImplementedError()
+    
+    @classmethod
+    def create_from_state_dict(cls, ai_stub, state_dict, **kwargs) -> 'AIEngine':
+        raise NotImplementedError()
     
     def perceive_and_act(self) -> None:
         raise NotImplementedError()
