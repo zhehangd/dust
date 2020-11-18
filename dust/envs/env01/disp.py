@@ -29,6 +29,14 @@ class Disp(EnvDisplay):
     def __init__(self, env_core, env_ai_stub, state_dict: dict = None):
         self.env = env_core
     
+    @classmethod
+    def create_new_instance(cls, env_core, ai_stub) -> 'EnvDisplay':
+        return cls(env_core, ai_stub)
+    
+    @classmethod
+    def create_from_state_dict(cls, env_core, ai_stub, state_dict) -> 'EnvDisplay':
+        return cls(env_core, ai_stub, state_dict)
+    
     def init(self):
         env = self.env
         w, h = env.map_shape

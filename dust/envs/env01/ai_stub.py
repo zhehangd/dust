@@ -14,6 +14,14 @@ class Env01Stub(EnvAIStub):
         self.net_size = (16,16)
         
 
+    @classmethod
+    def create_new_instance(cls, env_core) -> 'EnvAIStub':
+        return cls(env_core)
+    
+    @classmethod
+    def create_from_state_dict(cls, env_core, state_dict) -> 'EnvAIStub':
+        return cls(env_core, state_dict)
+    
     def get_observation(self):
         """ Extract observation from the current env
         """

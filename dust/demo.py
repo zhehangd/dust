@@ -1,5 +1,6 @@
 import logging
 import os
+import pickle
 import sys
 import time
 
@@ -21,15 +22,9 @@ def demo():
     proj = _dust.project()
     
     save_filename = FindTimestampedFile('saves', 'save.*.pickle').get_latest_file()
-    f = _dust.DustFrame.create_demo_frames_from_save(save_filename)
-    
-    ai_engine = f.ai.ai_engine
-    
-    assert ai_engine.pi_model is not None
-    assert ai_engine.v_model is not None
-    net_data = torch.load(os.path.join(proj.proj_dir, 'network.pth'))
-    ai_engine.pi_model = net_data['pi_model']
-    ai_engine.v_model = net_data['v_model']
+    with open(save_filename, 'rb') as f:
+        state_dict = pickle.loads(f.read())
+    f = _dust.DustFrame.create_frames(is_train=False, state_dict=state_dict)
     
     f.disp.init()
     f.disp.render()

@@ -4,7 +4,7 @@ import sys
 from typing import Callable
 
 from dust.core.env import EnvCore, EnvAIStub, EnvDisplay, EnvRecord
-from dust.core.ai_engine import AIEngine
+from dust.core.ai_engine import AIEngine, AIEngineRecord
 from dust.utils._arg_cfg_parse import ArgCfgParser
 
 _ENV_REGISTRY = {}
@@ -65,22 +65,7 @@ def register_all_env_arguments() -> None:
         sys.stderr.write('Register env {} arguments.\n'.format(env_name))
         record.register_args()
 
-class AIEngineRecord(object):
-    """
-    
-    Holds environment infomation and provide basic checking of the callback.
-    """
-    
-    def __init__(self):
-        self._name = ""
-        self._import_class = None
-        self._register_args = None
-
-def register_ai_engine(name: str, fn_import_class, fn_arugments) -> None:
-    record = EnvRecord()
-    record._name = name
-    record._import_class = fn_import_class
-    record._register_args = fn_arugments
+def register_ai_engine(name: str, record: AIEngineRecord) -> None:
     if hasattr(_AI_ENGINE_REGISTRY, name):
         raise RuntimeError('"{}" is a registered AI engine.'.format(name))
     _AI_ENGINE_REGISTRY[name] = record
@@ -95,11 +80,8 @@ def register_all_ai_engine_arguments() -> None:
     after all required envs are registered.
     """
     for engine_name, record in _AI_ENGINE_REGISTRY.items():
-        if record._register_args:
-            sys.stderr.write('Register AI engine {} arguments.\n'.format(engine_name))
-            record._register_args()
-        else:
-            sys.stderr.write('AI engine {} does not have argument function.\n')
+        sys.stderr.write('Register AI engine {} arguments.\n'.format(engine_name))
+        record.register_args()
 
 def argparser() -> ArgCfgParser:
     """ Returns the global argparser

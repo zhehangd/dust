@@ -83,9 +83,10 @@ class PrototypeAIEngine(AIEngine):
         self.epoch_num_rounds = 0
         
         if state_dict:
-            auto_load_state_dict(self, state_dict)
             self.trainer = Trainer.create_from_state_dict(
                 self.pi_model, self.v_model, state_dict['trainer'])
+            del state_dict['trainer'] # HACK  this will modiy state_dict
+            auto_load_state_dict(self, state_dict)
         else:
             self.trainer = Trainer.create_new_instance(
                 self.pi_model, self.v_model)

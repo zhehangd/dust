@@ -9,6 +9,14 @@ class _EnvComponent(object):
             A dict type object
         """
         raise NotImplementedError()
+    
+    @classmethod
+    def create_new_instance(cls) -> '_EnvComponent':
+        raise NotImplementedError()
+    
+    @classmethod
+    def create_from_state_dict(cls, state_dict) -> '_EnvComponent':
+        raise NotImplementedError()
 
 class EnvCore(_EnvComponent):
     """ Base class of Environment Cores
@@ -25,6 +33,14 @@ class EnvCore(_EnvComponent):
         end_of_round (bool): Indicates the current round is about to end.
     
     """
+    
+    @classmethod
+    def create_new_instance(cls) -> 'EnvCore':
+        raise NotImplementedError()
+    
+    @classmethod
+    def create_from_state_dict(cls, state_dict) -> 'EnvCore':
+        raise NotImplementedError()
     
     def new_simulation(self) -> None:
         """ Creates a new simulation
@@ -63,6 +79,14 @@ class EnvAIStub(_EnvComponent):
     
     """
     
+    @classmethod
+    def create_new_instance(cls, env_core) -> 'EnvAIStub':
+        raise NotImplementedError()
+    
+    @classmethod
+    def create_from_state_dict(cls, env_core, state_dict) -> 'EnvAIStub':
+        raise NotImplementedError()
+    
     def get_observation(self) -> None:
         raise NotImplementedError()
     
@@ -94,6 +118,14 @@ class EnvDisplay(_EnvComponent):
     Attributes:
     
     """
+    
+    @classmethod
+    def create_new_instance(cls, env_core, ai_stub) -> 'EnvDisplay':
+        raise NotImplementedError()
+    
+    @classmethod
+    def create_from_state_dict(cls, env_core, ai_stub, state_dict) -> 'EnvDisplay':
+        raise NotImplementedError()
     
     def init(self):
         raise NotImplementedError()

@@ -21,7 +21,7 @@ def auto_load_state_dict(obj, sd):
     for attr_name, attr_data in sd.items():
         # Attr must exist. Otherwise, we may end up with
         # assigning the state dict to that attribute.
-        assert hasattr(obj, attr_name)
+        assert hasattr(obj, attr_name), attr_name
         attr = getattr(obj, attr_name)
         if hasattr(attr, 'load_state_dict'):
             attr.load_state_dict(attr_data)

@@ -36,38 +36,60 @@ class DustFrame(object):
             pickle.dump(self.state_dict(), f)
     
     @staticmethod
-    def _create_frames(env_name: str, ai_engine_name: str, is_train: bool, state_dict: dict):
+    def create_frames(env_name: str = None, ai_engine_name: str = None,
+                      is_train: bool = None, state_dict: dict = None):
+        """ Creates a set of frames
+        
+        This function instantiates an environment and an AI engine,
+        and loads them into an environment frame and an AI frame.
+        The frames provides the interface to conduct the simulation
+        in training mode.
+        
+        Args:
+            env_name (str): Name of the environment
+            ai_engine_name (str): Name of the AI Engine
+        
+        Returns:
+            frames (tuple): An environment frame and an AI frame
         """
         
-        env_name and ai_engine_name overwrites the items in state_dict
+        if state_dict:
+            env_name = state_dict['env_name']
+            ai_engine_name = state_dict['ai_engine_name']
+            create_fn = 'create_from_state_dict'
+            env_core_kwargs = {'state_dict': state_dict['env_core']}
+            env_ai_stub_kwargs = {'state_dict': state_dict['env_ai_stub']}
+            engine_kwargs = {'state_dict': state_dict['ai_engine']}
+            env_disp_kwargs = {'state_dict': None}
+        else:
+            assert isinstance(env_name, str)
+            assert isinstance(ai_engine_name, str)
+            create_fn = 'create_new_instance'
+            env_core_kwargs = {}
+            env_ai_stub_kwargs = {}
+            engine_kwargs = {}
+            env_disp_kwargs = {}
         
-        """
+        engine_kwargs['freeze'] = not is_train
+        
         env_record = _ENV_REGISTRY[env_name]
         
-        env_core_sd = state_dict['env_core'] if state_dict else None
-        env_core = env_record.core(state_dict=env_core_sd)
+        env_core = getattr(env_record.core, create_fn)(**env_core_kwargs)
         assert isinstance(env_core, EnvCore), type(env_core)
         env_frame = EnvFrame(env_core)
         
-        env_ai_stub_sd = state_dict['env_ai_stub'] if state_dict else None
-        env_ai_stub = env_record.ai_stub(
-            env_core, state_dict=env_ai_stub_sd)
+        env_ai_stub = getattr(env_record.ai_stub, create_fn)(env_core, **env_ai_stub_kwargs)
         assert isinstance(env_ai_stub, EnvAIStub), type(env_ai_stub)
         
         ai_engine_record = _AI_ENGINE_REGISTRY[ai_engine_name]
-        
-        ai_engine_sd = state_dict['ai_engine'] if state_dict else None
-        
-        ai_engine_class = ai_engine_record._import_class()
-        if state_dict:
-            ai_engine = ai_engine_class.create_from_state_dict(env_ai_stub, state_dict, freeze=not is_train)
-        else:
-            ai_engine = ai_engine_class.create_new_instance(env_ai_stub, freeze=not is_train)
+        ai_engine = getattr(ai_engine_record.ai_engine, create_fn)(
+            env_ai_stub, **engine_kwargs)
         assert isinstance(ai_engine, AIEngine), type(ai_engine)
         ai_frame = AIFrame(ai_engine)
         
         if not is_train:
-            env_disp = env_record.disp(env_core, env_ai_stub)
+            env_disp = getattr(env_record.disp, create_fn)(
+                env_core, env_ai_stub, **env_disp_kwargs)
             assert isinstance(env_disp, EnvDisplay), type(env_disp)
             disp_frame = DispFrame(env_disp)
         
@@ -89,7 +111,7 @@ class DustFrame(object):
         return f
     
     @staticmethod
-    def create_training_frames(env_name: str, ai_engine_name: str):
+    def create_new_frames(env_name: str, ai_engine_name: str, freeze: bool):
         """ Creates a set of frames for training
         
         This function instantiates an environment and an AI engine,
@@ -104,7 +126,31 @@ class DustFrame(object):
         Returns:
             frames (tuple): An environment frame and an AI frame
         """
-        return DustFrame._create_frames(env_name, ai_engine_name, True, None)
+        env_record = _ENV_REGISTRY[env_name]
+        
+        env_core = env_record.core.create_new_instance()
+        assert isinstance(env_core, EnvCore), type(env_core)
+        env_frame = EnvFrame(env_core)
+        
+        env_ai_stub = env_record.ai_stub.create_new_instance(env_core)
+        assert isinstance(env_ai_stub, EnvAIStub), type(env_ai_stub)
+        
+        ai_engine_record = _AI_ENGINE_REGISTRY[ai_engine_name]
+        ai_engine = ai_engine_record.ai_engine.create_new_instance(env_ai_stub, freeze)
+        assert isinstance(ai_engine, AIEngine), type(ai_engine)
+        ai_frame = AIFrame(ai_engine)
+        
+        f = DustFrame()
+        f.env_name = env_name
+        f.ai_engine_name = ai_engine_name
+        
+        f.env = env_frame
+        f.ai = ai_frame
+        
+        f._env_core = env_core
+        f._env_ai_stub = env_ai_stub
+        f._ai_engine = ai_engine
+        return f
     
 
     @staticmethod

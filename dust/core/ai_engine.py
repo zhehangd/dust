@@ -26,3 +26,14 @@ class AIEngine(object):
     def update(self) -> None:
         raise NotImplementedError()
     
+class AIEngineRecord(object):
+    """
+    """
+
+    @property
+    def ai_engine(self) -> type(AIEngine):
+        raise NotImplementedError()
+    
+    def register_args(self):
+        raise NotImplementedError()
+        

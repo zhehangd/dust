@@ -51,11 +51,15 @@ def train():
     
     if proj.args.cont:
         save_filename = FindTimestampedFile('saves', 'save.*.pickle').get_latest_file()
-        f = _dust.DustFrame.create_training_frames_from_save(save_filename)
+        with open(save_filename, 'rb') as f:
+            state_dict = pickle.loads(f.read())
+        f = _dust.DustFrame.create_frames(is_train=True, state_dict=state_dict)
     else:
         env_name = proj.args.env
         engine_name = proj.args.engine
-        f = _dust.DustFrame.create_training_frames(env_name, engine_name)
+        f = _dust.DustFrame.create_frames(env_name=env_name,
+                                          ai_engine_name=engine_name,
+                                          is_train=True)
         f.env.new_simulation()
     
     save = DynamicSave(f.env.curr_tick(), 1000, 10)
