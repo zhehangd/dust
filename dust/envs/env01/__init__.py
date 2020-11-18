@@ -1,22 +1,29 @@
 import importlib
 
 from dust import _dust
+from dust.core.env import EnvCore, EnvAIStub, EnvDisplay, EnvRecord
 
-def _create_env(state_dict: dict = None):
-    core_module = importlib.import_module(__package__ + '.core')
-    return core_module.Env01Core(state_dict)
+class Env01Record(object):
+    """
+    """
 
-def _create_ai_stub(env, state_dict: dict = None):
-    ai_stub_module = importlib.import_module(__package__ + '.ai_stub')
-    return ai_stub_module.Env01Stub(env, state_dict)
+    @property
+    def core(self) -> type(EnvCore):
+        core_module = importlib.import_module(__package__ + '.core')
+        return core_module.Env01Core
+    
+    @property
+    def ai_stub(self) -> type(EnvAIStub):
+        ai_stub_module = importlib.import_module(__package__ + '.ai_stub')
+        return ai_stub_module.Env01Stub
+    
+    @property
+    def disp(self) -> type(EnvDisplay):
+        disp_module = importlib.import_module(__package__ + '.disp')
+        return disp_module.Disp
+    
+    def register_args(self):
+        pass
 
-def _create_disp(env, ai, state_dict: dict = None):
-    disp_module = importlib.import_module(__package__ + '.disp')
-    return disp_module.Disp(env, ai, state_dict)
 
-def _register_args():
-    pass
-
-_dust.register_env("env01",
-    _create_env, _create_ai_stub,
-    _create_disp, _register_args)
+_dust.register_env("env01", Env01Record())

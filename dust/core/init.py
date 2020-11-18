@@ -3,7 +3,7 @@ import sys
 
 from typing import Callable
 
-from dust.core.env import EnvCore, EnvAIStub, EnvDisplay
+from dust.core.env import EnvCore, EnvAIStub, EnvDisplay, EnvRecord
 from dust.core.ai_engine import AIEngine
 from dust.utils._arg_cfg_parse import ArgCfgParser
 
@@ -13,22 +13,7 @@ _AI_ENGINE_REGISTRY = {}
 
 _ARG_PARSER = ArgCfgParser()
 
-class EnvRecord(object):
-    """ Stub of a registered environment.
-    """
-    
-    def __init__(self):
-        self._name = ""
-        self._create_env = None
-        self._create_ai_stub = None
-        self._create_disp = None
-        self._register_args = None
-
-def register_env(name: str,
-                 create_env: Callable,
-                 create_ai_stub: Callable,
-                 create_disp: Callable,
-                 register_args) -> None:
+def register_env(name: str, record: EnvRecord) -> None:
     """ Registers an environment.
     
     Registering an environment requires a name and four functions.
@@ -44,12 +29,6 @@ def register_env(name: str,
         create_disp (Callable[[EnvCore, EnvAIStub], EnvDisplay]): X
     
     """
-    record = EnvRecord()
-    record._name = name
-    record._create_env = create_env
-    record._create_ai_stub = create_ai_stub
-    record._create_disp = create_disp
-    record._register_args = register_args
     if hasattr(_ENV_REGISTRY, name):
         raise RuntimeError('"{}" is a registered env.'.format(name))
     _ENV_REGISTRY[name] = record
@@ -83,11 +62,8 @@ def register_all_env_arguments() -> None:
     after all required envs are registered.
     """
     for env_name, record in _ENV_REGISTRY.items():
-        if record._register_args:
-            sys.stderr.write('Register env {} arguments.\n'.format(env_name))
-            record._register_args()
-        else:
-            sys.stderr.write('Env {} does not have argument function.\n')
+        sys.stderr.write('Register env {} arguments.\n'.format(env_name))
+        record.register_args()
 
 class AIEngineRecord(object):
     """

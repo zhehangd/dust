@@ -45,13 +45,12 @@ class DustFrame(object):
         env_record = _ENV_REGISTRY[env_name]
         
         env_core_sd = state_dict['env_core'] if state_dict else None
-        env_core = env_record._create_env(
-            state_dict=env_core_sd)
+        env_core = env_record.core(state_dict=env_core_sd)
         assert isinstance(env_core, EnvCore), type(env_core)
         env_frame = EnvFrame(env_core)
         
         env_ai_stub_sd = state_dict['env_ai_stub'] if state_dict else None
-        env_ai_stub = env_record._create_ai_stub(
+        env_ai_stub = env_record.ai_stub(
             env_core, state_dict=env_ai_stub_sd)
         assert isinstance(env_ai_stub, EnvAIStub), type(env_ai_stub)
         
@@ -68,7 +67,7 @@ class DustFrame(object):
         ai_frame = AIFrame(ai_engine)
         
         if not is_train:
-            env_disp = env_record._create_disp(env_core, env_ai_stub)
+            env_disp = env_record.disp(env_core, env_ai_stub)
             assert isinstance(env_disp, EnvDisplay), type(env_disp)
             disp_frame = DispFrame(env_disp)
         

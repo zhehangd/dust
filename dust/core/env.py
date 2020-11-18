@@ -100,3 +100,23 @@ class EnvDisplay(_EnvComponent):
     
     def render(self):
         raise NotImplementedError()
+
+class EnvRecord(object):
+    """
+    """
+
+    @property
+    def core(self) -> type(EnvCore):
+        raise NotImplementedError()
+    
+    @property
+    def ai_stub(self) -> type(EnvAIStub):
+        raise NotImplementedError()
+    
+    @property
+    def disp(self) -> type(EnvDisplay):
+        raise NotImplementedError()
+    
+    def register_args(self):
+        raise NotImplementedError()
+        
