@@ -57,37 +57,35 @@ class PrototypeAIEngine(AIEngine):
         self.ai_stub = ai_stub
         proj = _dust.project()
         
-        #def count_vars(module):
-        #    return sum([np.prod(p.shape) for p in module.parameters()])
-        #var_counts = tuple(count_vars(module) for module in [ac.pi, ac.v])
-        #logging.info('\nNumber of parameters: \t pi: %d, \t v: %d\n'%var_counts)
-        
         self.freeze_learning = freeze
         
         obs_dim = self.ai_stub.obs_dim
         act_dim = self.ai_stub.act_dim
         net_size = self.ai_stub.net_size
         
-        self.buf = PPOBuffer(obs_dim, None, _EPOCH_LENGTH)
         pi_model, v_model = create_default_actor_crtic(obs_dim, act_dim, net_size)
         self.pi_model = pi_model
         self.v_model = v_model
         
-        
         if not self.freeze_learning:
             self.progress = progress_log.ProgressLog()
         
-        self.curr_epoch_tick = 0
-        self.curr_epoch = 0
-        self.epoch_reward = 0 # reward collected in the epoch (NOT round)
-        self.epoch_num_rounds = 0
-        
         if state_dict:
+            self.pi_model.load_state_dict(state_dict['pi_model'])
+            self.v_model.load_state_dict(state_dict['v_model'])
+            self.buf = state_dict['buf']
+            self.curr_epoch_tick = state_dict['curr_epoch_tick']
+            self.curr_epoch = state_dict['curr_epoch']
+            self.epoch_reward = state_dict['epoch_reward']
+            self.epoch_num_rounds = state_dict['epoch_num_rounds']
             self.trainer = Trainer.create_from_state_dict(
                 self.pi_model, self.v_model, state_dict['trainer'])
-            del state_dict['trainer'] # HACK  this will modiy state_dict
-            auto_load_state_dict(self, state_dict)
         else:
+            self.buf = PPOBuffer(obs_dim, None, _EPOCH_LENGTH)
+            self.curr_epoch_tick = 0
+            self.curr_epoch = 0
+            self.epoch_reward = 0 # reward collected in the epoch (NOT round)
+            self.epoch_num_rounds = 0
             self.trainer = Trainer.create_new_instance(
                 self.pi_model, self.v_model)
     
@@ -126,8 +124,6 @@ class PrototypeAIEngine(AIEngine):
             if forced_round_end:
                 obs = self.ai_stub.get_observation()
                 obs_tensor = torch.as_tensor(obs, dtype=torch.float32)
-                #if self.ac.use_cuda:
-                #    obs_tensor = obs_tensor.cuda()
                 _, v, _ = step(self.pi_model, self.v_model, obs_tensor)
             else:
                 v = 0

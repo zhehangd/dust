@@ -207,7 +207,8 @@ class EnvFrame(object):
     
     def next_tick(self):
         self.env_core.next_tick()
-        
+    
+    @property
     def curr_tick(self) -> int:
         return self.env_core.curr_tick()
 

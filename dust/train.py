@@ -39,69 +39,87 @@ class MainLoopTimer(object):
         self.time_count = 0
         return msg
 
-def init():
-    _dust.register_all_envs()
-    _dust.register_all_env_arguments()
-    _dust.register_all_ai_engines()
-    _dust.register_all_ai_engine_arguments()
-    proj = _dust.load_project('train')
-
-def train():
-    proj = _dust.project()
+class Train(object):
     
-    if proj.args.cont:
-        save_filename = FindTimestampedFile('saves', 'save.*.pickle').get_latest_file()
-        with open(save_filename, 'rb') as f:
-            state_dict = pickle.loads(f.read())
-        f = _dust.DustFrame.create_frames(is_train=True, state_dict=state_dict)
-    else:
-        env_name = proj.args.env
-        engine_name = proj.args.engine
-        f = _dust.DustFrame.create_frames(env_name=env_name,
-                                          ai_engine_name=engine_name,
-                                          is_train=True)
-        f.env.new_simulation()
+    def __init__(self):
+        pass
     
-    save = DynamicSave(f.env.curr_tick(), 1000, 10)
+    def run(self):
+        try:
+            self._init()
+            logging.info('Starting training...')
+            proj = _dust.project()
+            while self.sim.env.curr_tick < proj.args.target_tick:
+                self._update()
+        except KeyboardInterrupt:
+            logging.info('Interrupted by user')
     
-    t = MainLoopTimer(0)
-    while f.env.curr_tick() < proj.args.target_tick:
-
-        with t.section('env-next-tick'):
-            f.env.next_tick()
+    def _init(self):
+        
+        _dust.register_all_envs()
+        _dust.register_all_env_arguments()
+        _dust.register_all_ai_engines()
+        _dust.register_all_ai_engine_arguments()
+        proj = _dust.load_project('train')
+        
+        if proj.args.cont:
+            save_filename = FindTimestampedFile('saves', 'save.*.pickle').get_latest_file()
+            with open(save_filename, 'rb') as f:
+                state_dict = pickle.loads(f.read())
+            sim = _dust.DustFrame.create_frames(is_train=True, state_dict=state_dict)
+        else:
+            env_name = proj.args.env
+            engine_name = proj.args.engine
+            sim = _dust.DustFrame.create_frames(env_name=env_name,
+                                            ai_engine_name=engine_name,
+                                            is_train=True)
+            sim.env.new_simulation()
+        
+        self.sim = sim
+        self.save = DynamicSave(sim.env.curr_tick, 1000, 10)
+        self.timer = MainLoopTimer(0)
+    
+    def _update(self):
+        timer = self.timer
+        sim = self.sim
+        save = self.save
+        proj = _dust.project()
+        with timer.section('env-next-tick'):
+            sim.env.next_tick()
         
         # Agents observe the environment and take action
-        with t.section('agent-act'):
-            f.ai.perceive_and_act()
+        with timer.section('agent-act'):
+            sim.ai.perceive_and_act()
         
         # Environment evolves
-        with t.section('env-evolve'):
-            f.env.evolve()
+        with timer.section('env-evolve'):
+            sim.env.evolve()
         
         # Agents get the feedback from the environment
         # and update themselves
-        with t.section('agent-update'):
-            f.ai.update()
+        with timer.section('agent-update'):
+            sim.ai.update()
         
         # Environment update its data and move to the
         # state of the next tick
-        with t.section('env-update'):
-            f.env.update()
+        with timer.section('env-update'):
+            sim.env.update()
         
-        t.finish_iteration()
-        if t.time_count >= proj.args.timing_ticks:
-            logging.info(t.generate_report_and_reset())
+        timer.finish_iteration()
+        if timer.time_count >= proj.args.timing_ticks:
+            logging.info(timer.generate_report_and_reset())
         
-        if save.next_update_tick == f.env.curr_tick():
-            
-            #show_state_dict_content(sd)
-            #save_filename = 'saves/{}-{}.pickle'.format(proj.time_tag, f.env.curr_tick())
-            save_filename = 'saves/save.{}.pickle'.format(
-                datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S'))
-            logging.info('Saving to {}'.format(save_filename))
-            f.save(save_filename)
-            save.add_save(save_filename, f.env.curr_tick())
+        if save.next_update_tick == sim.env.curr_tick:
+            save_filename = self._save_state()
+            save.add_save(save_filename, sim.env.curr_tick)
 
+    def _save_state(self) -> str:
+        save_filename = 'saves/save.{}.pickle'.format(
+            datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S'))
+        logging.info('Saving to {}'.format(save_filename))
+        self.sim.save(save_filename)
+        return save_filename
+    
 if __name__ == '__main__':
     
     _argparser = _dust.argparser()
@@ -131,12 +149,6 @@ if __name__ == '__main__':
         type=bool, default=False,
         help='Continue training')
     
-    try:
-        sys.stderr.write('Initializing dust\n')
-        init()
-        logging.info('Starting training...')
-        train()
-    except KeyboardInterrupt:
-        logging.info('Interrupted by user')
-    
+    main = Train()
+    main.run()
     logging.info('End')
