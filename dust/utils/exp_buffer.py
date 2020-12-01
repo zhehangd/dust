@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 import torch
 
@@ -17,23 +19,46 @@ from dust.utils import su_core as core
 #   using structured arrays for obs/act.
 # * Save/load
 
+# TODO: logp may need custom type too
+
 class ExpBuffer(object):
     """
     A buffer for storing trajectories experienced by an agent interacting
     with the environment, and using Generalized Advantage Estimation (GAE-Lambda)
     for calculating the advantages of state-action pairs.
     
+    Args:
+        buf_size (int): Size of the buffer.
+            Data must be retrieved before the buffer is full.
+        obs_dtype (list/str/np.dtype): Dtype of observation.
+            Typically a structured type.
+        act_dtype (list/str/np.dtype): Dtype of observation. 
+            Typically a structured type.
+        gamma (float): Discount factor of return
+        lam (float): Discount factor of advantage
+    
     Attributes:
     
-        buf_data (np.ndarray): A structured array holding all buffer data
-        gamma (float): Discount factor of returns
-        lam (float): Discount factor of advantages
+        buf_data (np.ndarray): A 1D structured array holding all buffer data.
+            It has 7 components: observation ``obs``, action ``act``, advantage
+            ``adv``, reward ``rew``, return ``ret``, value ``val``, action
+            logit ``logp``. ``obs`` and ``act`` are of ``obs_dtype`` and
+            ``act_dtype`` types which are specified in ``__init__``.
+            The rest have float type.
+        gamma (float): Discount factor of return
+        lam (float): Discount factor of advantage
+    
+        
+    Examples:
+    
+        >>> buf = ExpBuffer(42, [('o1', 'i4', 4), ('o2', 'f4')], [('a', 'i4')])
+    
     """
 
-    def __init__(self, buf_size, obs_dtype, act_dtype, gamma=0.99, lam=0.95):
-        
-        #obs_dtype = [('a', 'i4', 4), ('b', 'f4', 2)]
-        #act_dtype = [('x', 'i4')]
+    def __init__(self, buf_size: int,
+                 obs_dtype: Union[list, str, np.dtype],
+                 act_dtype: Union[list, str, np.dtype],
+                 gamma: float = 0.99, lam: float = 0.95):
         buf_dtype = [('obs', obs_dtype), ('act', act_dtype),
                      ('adv', 'f4'), ('rew', 'f4'), ('ret', 'f4'),
                      ('val', 'f4'), ('logp', 'f4')]
