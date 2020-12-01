@@ -124,7 +124,7 @@ def test_reinforcement_learning():
     # -----------------------------------------
 
 
-    trainer = Trainer(pi_model, v_model)
+    trainer = Trainer.create_new_instance(pi_model, v_model)
     pi_info_old, v_info_old, pi_info, v_info = trainer.update(buf_data)
 
     kl, ent, cf = pi_info['kl'], pi_info_old['ent'], pi_info['cf']
