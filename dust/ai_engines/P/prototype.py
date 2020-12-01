@@ -12,7 +12,7 @@ from dust.core.ai_engine import AIEngine
 from dust.core import progress_log
 from dust.utils import np_utils
 from dust.utils.su_core import create_default_actor_crtic
-from dust.utils.exp_buffer import ExpBuffer
+from dust.utils.ppo_buffer import PPOBuffer
 from dust.utils.trainer import Trainer
 from dust.utils.state_dict import auto_make_state_dict, auto_load_state_dict
 
@@ -47,11 +47,42 @@ def step(pi_model, v_model, obs, a=None):
     assert a.shape == logp_a.shape
     return a, v, logp_a
 
-class PrototypeAIEngine(AIEngine):
+
+class Terminal(object):
     
-    _STATE_DICT_ATTR_LIST = [
-            'pi_model', 'v_model', 'buf',
-            'curr_epoch_tick', 'curr_epoch', 'epoch_reward', 'epoch_num_rounds']
+    def __init__(self, obs_dim, buf_size):
+        PPOBuffer(obs_dim, None, _EPOCH_LENGTH)
+
+class Prototype2AIEngine(AIEngine):
+    
+    def __init__(self):
+        self.brains = {}
+        self.terminals = {}
+    
+    def create_new_instance(cls) -> AIEngine:
+        dv = cls()
+    
+    def create_from_state_dict(cls, sd) -> AIEngine:
+        dv = cls()
+        return dv
+    
+    def add_brain(self, brain_def) -> int:
+        raise NotImplementedError()
+    
+    def remove_brain(self, idx):
+        raise NotImplementedError()
+    
+    def add_terminal(self):
+        raise NotImplementedError()
+    
+    def remove_terminal(self, idx):
+        raise NotImplementedError()
+    
+    def add_experience(self, term_idx, data):
+        assert term_idx == 0
+    
+    def update(self):
+
     
     def __init__(self, ai_stub, freeze, state_dict=None):
         self.ai_stub = ai_stub
@@ -81,7 +112,7 @@ class PrototypeAIEngine(AIEngine):
             self.trainer = Trainer.create_from_state_dict(
                 self.pi_model, self.v_model, state_dict['trainer'])
         else:
-            self.buf = ExpBuffer(_EPOCH_LENGTH, [('o', 'f4', obs_dim)], [('a', 'i4')])
+            self.buf = PPOBuffer(obs_dim, None, _EPOCH_LENGTH)
             self.curr_epoch_tick = 0
             self.curr_epoch = 0
             self.epoch_reward = 0 # reward collected in the epoch (NOT round)
@@ -117,11 +148,7 @@ class PrototypeAIEngine(AIEngine):
         def _update_tick():
             a, v, logp, obs = self.ac_data
             r = self.ai_stub.tick_reward
-            obs_ = np.empty((),[('o','f4',self.ai_stub.obs_dim)])
-            a_ = np.empty((),[('a','f4')])
-            obs_['o'] = obs
-            a_['a'] = a
-            self.buf.store(obs_, a_, r, v, logp)
+            self.buf.store(obs, a, r, v, logp)
             del self.ac_data
         
         def _update_round():
@@ -134,11 +161,7 @@ class PrototypeAIEngine(AIEngine):
             self.buf.finish_path(v)
             
         def _update_epoch():
-            data = self.buf.get()
-            data['obs'] = data['obs']['o']
-            data['act'] = data['act']['a']
-            data = {k: torch.as_tensor(v, dtype=torch.float32) for k,v in data.items()}
-            pi_info_old, v_info_old, pi_info, v_info = self.trainer.update(data)
+            pi_info_old, v_info_old, pi_info, v_info = self.trainer.update(self.buf.get())
             kl, ent, cf = pi_info['kl'], pi_info_old['ent'], pi_info['cf']
             delta_loss_pi = pi_info['loss'] - pi_info_old['loss']
             delta_loss_v = v_info['loss'] - v_info_old['loss']
