@@ -4,6 +4,22 @@ dust.utils package
 Submodules
 ----------
 
+dust.utils.dynamic\_save module
+-------------------------------
+
+.. automodule:: dust.utils.dynamic_save
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+dust.utils.exp\_buffer module
+-----------------------------
+
+.. automodule:: dust.utils.exp_buffer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 dust.utils.np\_utils module
 ---------------------------
 
@@ -28,6 +44,14 @@ dust.utils.rendering module
    :undoc-members:
    :show-inheritance:
 
+dust.utils.state\_dict module
+-----------------------------
+
+.. automodule:: dust.utils.state_dict
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 dust.utils.su\_core module
 --------------------------
 
@@ -40,6 +64,22 @@ dust.utils.test\_arg\_cfg\_parse module
 ---------------------------------------
 
 .. automodule:: dust.utils.test_arg_cfg_parse
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+dust.utils.test\_exp\_buffer module
+-----------------------------------
+
+.. automodule:: dust.utils.test_exp_buffer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+dust.utils.test\_state\_dict module
+-----------------------------------
+
+.. automodule:: dust.utils.test_state_dict
    :members:
    :undoc-members:
    :show-inheritance:

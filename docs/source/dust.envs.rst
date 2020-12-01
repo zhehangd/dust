@@ -7,7 +7,6 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   dust.envs.env00
    dust.envs.env01
 
 Module contents

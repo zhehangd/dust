@@ -19,3 +19,10 @@ python -m dust.train
 pytest
 ```
 
+## Doc
+
+```bash
+cd docs
+sphinx-apidoc -f -o ./source/ ../dust
+make html
+```
