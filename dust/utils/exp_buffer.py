@@ -19,8 +19,6 @@ from dust.utils import su_core as core
 #   using structured arrays for obs/act.
 # * Save/load
 
-# TODO: logp may need custom type too
-
 class ExpBuffer(object):
     """
     A buffer for storing trajectories experienced by an agent interacting
@@ -34,6 +32,8 @@ class ExpBuffer(object):
             Typically a structured type.
         act_dtype (list/str/np.dtype): Dtype of observation. 
             Typically a structured type.
+        ext_dtype (list/str/np.dtype): Dtype of extra data. 
+            Typically a structured type.
         gamma (float): Discount factor of return
         lam (float): Discount factor of advantage
     
@@ -42,9 +42,8 @@ class ExpBuffer(object):
         buf_data (np.ndarray): A 1D structured array holding all buffer data.
             It has 7 components: observation ``obs``, action ``act``, advantage
             ``adv``, reward ``rew``, return ``ret``, value ``val``, action
-            logit ``logp``. ``obs`` and ``act`` are of ``obs_dtype`` and
-            ``act_dtype`` types which are specified in ``__init__``.
-            The rest have float type.
+            extra ``ext``. ``obs``, ``act``, ``ext`` use custom types.
+            ``adv``, ``rew``, ``ret``, and ``val`` are float scalars.
         gamma (float): Discount factor of return
         lam (float): Discount factor of advantage
     
@@ -58,18 +57,19 @@ class ExpBuffer(object):
     def __init__(self, buf_size: int,
                  obs_dtype: Union[list, str, np.dtype],
                  act_dtype: Union[list, str, np.dtype],
+                 ext_dtype: Union[list, str, np.dtype],
                  gamma: float = 0.99, lam: float = 0.95):
-        buf_dtype = [('obs', obs_dtype), ('act', act_dtype),
+        buf_dtype = [('obs', obs_dtype), ('act', act_dtype), ('ext', ext_dtype),
                      ('adv', 'f4'), ('rew', 'f4'), ('ret', 'f4'),
-                     ('val', 'f4'), ('logp', 'f4')]
+                     ('val', 'f4'), ]
         self.buf_data = np.zeros(buf_size, buf_dtype)
         self.gamma = gamma
         self.lam = lam
         self._buf_idx = 0
         self._path_start_idx = 0
 
-    def store(self, obs: np.ndarray, act: np.ndarray, rew: float,
-              val: float, logp: float) -> None:
+    def store(self, obs: np.ndarray, act: np.ndarray, ext: np.ndarray,
+              rew: float, val: float) -> None:
         """
         Append one timestep of agent-environment interaction to the buffer.
         """
@@ -77,9 +77,9 @@ class ExpBuffer(object):
         buf_elem = self.buf_data[self._buf_idx]
         buf_elem['obs'] = obs
         buf_elem['act'] = act
+        buf_elem['ext'] = ext
         buf_elem['rew'] = rew
         buf_elem['val'] = val
-        buf_elem['logp'] = logp
         self._buf_idx += 1
 
     def finish_path(self, last_val: float = 0) -> None:
@@ -125,14 +125,8 @@ class ExpBuffer(object):
         the buffer, with advantages appropriately normalized (shifted to have
         mean zero and std one). Also, resets some pointers in the buffer.
         """
-        assert self._buf_idx == self.buf_data.size, '{}/{}'.format(self._buf_idx, self.buf_data.size) # buffer has to be full before you can get
+        assert self._buf_idx == self.buf_data.size, \
+          '{}/{}'.format(self._buf_idx, self.buf_data.size) # buffer has to be full before you can get
         self._buf_idx, self._path_start_idx = 0, 0
-        # the next two lines implement the advantage normalization trick
-        # NOTE: NO MPI
-        #adv_mean, adv_std = mpi_statistics_scalar(self.adv_buf)
-        #self.adv_buf = (self.adv_buf - adv_mean) / adv_std
-        data = dict(obs=self.buf_data['obs'], act=self.buf_data['act'], ret=self.buf_data['ret'],
-                    adv=self.buf_data['adv'], logp=self.buf_data['logp'])
-        #return {k: torch.as_tensor(v, dtype=torch.float32) for k,v in data.items()}
-        return data
+        return self.buf_data.copy()
  

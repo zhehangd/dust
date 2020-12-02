@@ -81,7 +81,8 @@ class PrototypeAIEngine(AIEngine):
             self.trainer = Trainer.create_from_state_dict(
                 self.pi_model, self.v_model, state_dict['trainer'])
         else:
-            self.buf = ExpBuffer(_EPOCH_LENGTH, [('o', 'f4', obs_dim)], [('a', 'i4')])
+            self.buf = ExpBuffer(_EPOCH_LENGTH, [('o', 'f4', obs_dim)],
+                                 [('a', 'i4')], [('logp','f4')])
             self.curr_epoch_tick = 0
             self.curr_epoch = 0
             self.epoch_reward = 0 # reward collected in the epoch (NOT round)
@@ -119,9 +120,11 @@ class PrototypeAIEngine(AIEngine):
             r = self.ai_stub.tick_reward
             obs_ = np.empty((),[('o','f4',self.ai_stub.obs_dim)])
             a_ = np.empty((),[('a','f4')])
+            e_ = np.empty((),[('logp','f4')])
             obs_['o'] = obs
             a_['a'] = a
-            self.buf.store(obs_, a_, r, v, logp)
+            e_['logp'] = logp
+            self.buf.store(obs_, a_, e_, r, v)
             del self.ac_data
         
         def _update_round():
@@ -134,9 +137,10 @@ class PrototypeAIEngine(AIEngine):
             self.buf.finish_path(v)
             
         def _update_epoch():
-            data = self.buf.get()
-            data['obs'] = data['obs']['o']
-            data['act'] = data['act']['a']
+            buf_data = self.buf.get()
+            data = dict(obs=buf_data['obs']['o'], act=buf_data['act']['a'],
+                        logp=buf_data['ext']['logp'], ret=buf_data['ret'],
+                        adv=buf_data['adv'])
             data = {k: torch.as_tensor(v, dtype=torch.float32) for k,v in data.items()}
             pi_info_old, v_info_old, pi_info, v_info = self.trainer.update(data)
             kl, ent, cf = pi_info['kl'], pi_info_old['ent'], pi_info['cf']
