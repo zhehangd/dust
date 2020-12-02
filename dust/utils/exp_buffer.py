@@ -26,7 +26,7 @@ class ExpBuffer(object):
     for calculating the advantages of state-action pairs.
     
     Args:
-        buf_size (int): Size of the buffer.
+        buf_capacity (int): Capacity of the buffer.
             Data must be retrieved before the buffer is full.
         obs_dtype (list/str/np.dtype): Dtype of observation.
             Typically a structured type.
@@ -54,22 +54,33 @@ class ExpBuffer(object):
     
     """
 
-    def __init__(self, buf_size: int,
+    def __init__(self, buf_capacity: int,
                  obs_dtype: Union[list, str, np.dtype],
                  act_dtype: Union[list, str, np.dtype],
                  ext_dtype: Union[list, str, np.dtype],
                  gamma: float = 0.99, lam: float = 0.95):
-        buf_dtype = [('obs', obs_dtype), ('act', act_dtype), ('ext', ext_dtype),
-                     ('adv', 'f4'), ('rew', 'f4'), ('ret', 'f4'),
-                     ('val', 'f4'), ]
-        self.buf_data = np.zeros(buf_size, buf_dtype)
+        buf_dtype = [
+            ('obs', obs_dtype), ('act', act_dtype), ('ext', ext_dtype),
+            ('rew', 'f4'),  ('val', 'f4'), ('adv', 'f4'), ('ret', 'f4')]
+        self.buf_data = np.zeros(buf_capacity, buf_dtype)
         self.gamma = gamma
         self.lam = lam
         self._buf_idx = 0
         self._path_start_idx = 0
 
-    def store(self, obs: np.ndarray, act: np.ndarray, ext: np.ndarray,
-              rew: float, val: float) -> None:
+    @property
+    def buf_capacity(self) -> int:
+        return self.buf_data.size
+    
+    @property
+    def buf_size(self) -> int:
+        return self._buf_idx
+    
+    @property
+    def path_start_idx(self) -> int:
+        return self._path_start_idx
+
+    def store(self, obs, act, ext, rew: float, val: float) -> None:
         """
         Append one timestep of agent-environment interaction to the buffer.
         """
@@ -83,19 +94,68 @@ class ExpBuffer(object):
         self._buf_idx += 1
 
     def finish_path(self, last_val: float = 0) -> None:
-        """
-        Call this at the end of a trajectory, or when one gets cut off
-        by an epoch ending. This looks back in the buffer to where the
-        trajectory started, and uses rewards and value estimates from
-        the whole trajectory to compute advantage estimates with GAE-Lambda,
+        """ Ends the current path
+        
+        Call this at the end of trajectory. To properly estimate the expected
+        returns, the method needs the value of the state resulted from the
+        last action. 
+        
+        The method looks back in the buffer to where the trajectory started,
+        and uses rewards and value estimates from the whole trajectory to
+        compute advantage estimates with GAE-Lambda,
         as well as compute the rewards-to-go for each state, to use as
         the targets for the value function.
-
+        
         The "last_val" argument should be 0 if the trajectory ended
         because the agent reached a terminal state (died), and otherwise
         should be V(s_T), the value function estimated for the last state.
         This allows us to bootstrap the reward-to-go calculation to account
         for timesteps beyond the arbitrary episode horizon (or epoch cutoff).
+        """
+        self._update_adv_and_ret(last_val)
+        self._path_start_idx = self._buf_idx
+
+    def get(self, length: int = 0) -> dict:
+        """ Retrieve buffer data
+        
+        "length" specifies the length of data to be retrieved.
+        If "length" is not a positive number, it means the whole buffer.
+        
+        Call this only if there are enough data in the buffer.
+        Either there are at least 'length' elements and all covered paths
+        have been finished (by calling "finish_path"),  or there are at least
+        "length+1" elements, so advantages and returns can be properly estimated.
+        
+        The retrieved data are removed from the buffer.
+        
+        """
+        num_retrieved = length if length > 0 else self.buf_data.size
+        num_remains = self.buf_data.size - num_retrieved
+        
+        assert num_retrieved <= self._buf_idx, \
+            'Buffer size/capacity={}/{} cannot fill a slice of length {}'.format(
+                self._buf_idx, self.buf_data.size, num_retrieved)
+        
+        if num_retrieved > self._path_start_idx and num_retrieved < self._buf_idx - 1:
+            self._update_adv_and_ret(self.buf_data['val'][num_retrieved])
+        else:
+            assert num_retrieved <= self._path_start_idx, \
+                'You must finish the current path start/size/capacity={}/{}/{} '\
+                'or provide at least one more sample to retrieve your slice of length {}'.format(\
+                    self._path_start_idx, self._buf_idx, self.buf_data.size, num_retrieved)
+        
+        buf_data_ret = self.buf_data[:num_retrieved].copy()
+        self.buf_data[:num_remains] = self.buf_data[num_retrieved:]
+        self._buf_idx -= num_retrieved
+        self._path_start_idx -= num_retrieved
+        return buf_data_ret
+ 
+    def _update_adv_and_ret(self, last_val: float = 0) -> None:
+        """ Updates the returns and the advantages of the current path
+        
+        This does all the job to finish a path except that the path is not
+        truly finished. It can still receive new data and finally get finished
+        by "finish_path".
         """
         buf_slice = self.buf_data[slice(self._path_start_idx, self._buf_idx)]
         
@@ -113,27 +173,3 @@ class ExpBuffer(object):
         
         # the next line computes rewards-to-go, to be targets for the value function
         buf_slice['ret'] = core.discount_cumsum(rews, self.gamma)[:-1]
-        
-        self._path_start_idx = self._buf_idx
-
-    def get(self, length: int = 0) -> dict:
-        """
-        Call this at the end of an epoch to get all of the data from
-        the buffer, with advantages appropriately normalized (shifted to have
-        mean zero and std one). Also, resets some pointers in the buffer.
-        """
-        num_retrieved = length if length > 0 else self.buf_data.size
-        num_remains = self.buf_data.size - num_retrieved
-        
-        assert self._buf_idx >= num_retrieved, \
-            'Buffer does not have enough data {}/{}/{}'.format(
-                self._buf_idx, num_retrieved, self.buf_data.size)
-        assert self._path_start_idx >= self._buf_idx, \
-            'You must finish a path before you retrieve the buffer data'
-        
-        buf_data_ret = self.buf_data[:num_retrieved].copy()
-        self.buf_data[:num_remains] = self.buf_data[num_retrieved:]
-        self._buf_idx -= num_retrieved
-        self._path_start_idx -= num_retrieved
-        return buf_data_ret
- 
