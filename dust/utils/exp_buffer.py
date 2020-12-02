@@ -97,10 +97,7 @@ class ExpBuffer(object):
         This allows us to bootstrap the reward-to-go calculation to account
         for timesteps beyond the arbitrary episode horizon (or epoch cutoff).
         """
-
-        path_slice = slice(self._path_start_idx, self._buf_idx)
-        
-        buf_slice = self.buf_data[path_slice]
+        buf_slice = self.buf_data[slice(self._path_start_idx, self._buf_idx)]
         
         rews = buf_slice['rew']
         rews = np.append(rews, last_val)
@@ -119,14 +116,24 @@ class ExpBuffer(object):
         
         self._path_start_idx = self._buf_idx
 
-    def get(self) -> dict:
+    def get(self, length: int = 0) -> dict:
         """
         Call this at the end of an epoch to get all of the data from
         the buffer, with advantages appropriately normalized (shifted to have
         mean zero and std one). Also, resets some pointers in the buffer.
         """
-        assert self._buf_idx == self.buf_data.size, \
-          '{}/{}'.format(self._buf_idx, self.buf_data.size) # buffer has to be full before you can get
-        self._buf_idx, self._path_start_idx = 0, 0
-        return self.buf_data.copy()
+        num_retrieved = length if length > 0 else self.buf_data.size
+        num_remains = self.buf_data.size - num_retrieved
+        
+        assert self._buf_idx >= num_retrieved, \
+            'Buffer does not have enough data {}/{}/{}'.format(
+                self._buf_idx, num_retrieved, self.buf_data.size)
+        assert self._path_start_idx >= self._buf_idx, \
+            'You must finish a path before you retrieve the buffer data'
+        
+        buf_data_ret = self.buf_data[:num_retrieved].copy()
+        self.buf_data[:num_remains] = self.buf_data[num_retrieved:]
+        self._buf_idx -= num_retrieved
+        self._path_start_idx -= num_retrieved
+        return buf_data_ret
  
