@@ -112,7 +112,8 @@ class ExpBuffer(object):
         This allows us to bootstrap the reward-to-go calculation to account
         for timesteps beyond the arbitrary episode horizon (or epoch cutoff).
         """
-        self._update_adv_and_ret(last_val)
+        s = slice(self._path_start_idx, self._buf_idx)
+        self._update_adv_and_ret(s, last_val)
         self._path_start_idx = self._buf_idx
 
     def get(self, length: int = 0) -> dict:
@@ -136,8 +137,9 @@ class ExpBuffer(object):
             'Buffer size/capacity={}/{} cannot fill a slice of length {}'.format(
                 self._buf_idx, self.buf_data.size, num_retrieved)
         
-        if num_retrieved > self._path_start_idx and num_retrieved < self._buf_idx - 1:
-            self._update_adv_and_ret(self.buf_data['val'][num_retrieved])
+        if (num_retrieved > self._path_start_idx) and (num_retrieved < self._buf_idx):
+            s = slice(self._path_start_idx, self._buf_idx - 1)
+            self._update_adv_and_ret(s, self.buf_data['val'][self._buf_idx - 1])
         else:
             assert num_retrieved <= self._path_start_idx, \
                 'You must finish the current path start/size/capacity={}/{}/{} '\
@@ -150,14 +152,14 @@ class ExpBuffer(object):
         self._path_start_idx -= num_retrieved
         return buf_data_ret
  
-    def _update_adv_and_ret(self, last_val: float = 0) -> None:
+    def _update_adv_and_ret(self, slice_obj: slice, last_val: float = 0) -> None:
         """ Updates the returns and the advantages of the current path
         
         This does all the job to finish a path except that the path is not
         truly finished. It can still receive new data and finally get finished
         by "finish_path".
         """
-        buf_slice = self.buf_data[slice(self._path_start_idx, self._buf_idx)]
+        buf_slice = self.buf_data[slice_obj]
         
         rews = buf_slice['rew']
         rews = np.append(rews, last_val)

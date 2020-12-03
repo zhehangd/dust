@@ -25,13 +25,13 @@ def test_exp_buffer():
     buf.finish_path(0)
     
     # Since only 1 point reward is given at the end,
-    # the observed burn is just
+    # the observed return is just
     # R(t) = 0.9**(4-t)
     for t in range(5):
         assert buf.buf_data['ret'][t] == pytest.approx(0.9**(4-t)),\
             '{}'.format(buf.buf_data['ret'])
     
-    # For the first 4 samples burns are all in (0, 1)
+    # For the first 4 samples returns are all in (0, 1)
     # So value=1 is an overestimate and value=0 is an underestimate
     # The first case results in negative advantages, as the second case
     # results in positive advantages.
@@ -50,12 +50,14 @@ def test_exp_buffer():
             '{}'.format(buf.buf_data['act'])
     
     # Extract the first two elements manually, this should be the same as
-    # the burn value of buf.get(2) 
+    # the return value of buf.get(2) 
     # NOTE: no convenient way to compare structured array
     ret_ref = buf.buf_data[:2].copy()
-    new_ref = buf.buf_data[2:5].copy()
+    rem_ref = buf.buf_data[2:5].copy()
     ret = buf.get(length=2)
-    new = buf.buf_data[:3]
+    rem = buf.buf_data[:3].copy()
+    
+    # Three samples left
     assert buf.buf_size == 3
     
     def compare_buf_data(a, b):
@@ -70,8 +72,31 @@ def test_exp_buffer():
             '{}, {}'.format(a, b)
     
     compare_buf_data(ret_ref, ret)
-    compare_buf_data(new_ref, new)
-
+    compare_buf_data(rem_ref, rem)
     
-
-
+    # Add 6 new experience samples
+    # We have retrieved 2 samples so 11 samples in total shouldn't
+    # make the buffer full.
+    buf.store(5, 0, 0.8, 1, 1)
+    buf.store(6, 0, 0.7, 0, 1)
+    buf.store(7, 0, 0.6, 1, 1)
+    buf.store(8, 1, 0.5, 0, 1)
+    buf.store(9, 1, 0.4, -5, 1)
+    buf.store(0, 1, 0.3, 5, 1)
+    
+    # Let's retrieve a slice that includes the old path and a part of
+    # the new path without finishing the new path first.
+    # Retrieve 5 samples in the new path, so only the last one is excluded.
+    ret = buf.get(length=3+5)
+    
+    # The first 3 samples should be exactly the same as before
+    compare_buf_data(rem, ret[:3])
+    
+    # Check observation
+    assert np.all(np.equal(ret['obs'], np.arange(2, 10)))
+    
+    # The last reward will not be counted into the return, so
+    # the returns in that path should be all negative.
+    ret['ret'][3:] < 0
+    
+    assert buf.buf_size == 1
