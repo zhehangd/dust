@@ -4,6 +4,11 @@
 
 In development
 
+## Install
+
+```bash
+pip install -e .
+```
 
 ## Train
 

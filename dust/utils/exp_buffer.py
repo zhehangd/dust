@@ -68,6 +68,13 @@ class ExpBuffer(object):
         self._buf_idx = 0
         self._path_start_idx = 0
 
+    @staticmethod
+    def generate_elem_dtype(obs_dtype: Union[list, str, np.dtype],
+                            act_dtype: Union[list, str, np.dtype],
+                            ext_dtype: Union[list, str, np.dtype]):
+        return [('obs', obs_dtype), ('act', act_dtype), ('ext', ext_dtype),
+                ('rew', 'f4'),  ('val', 'f4'), ('adv', 'f4'), ('ret', 'f4')]
+    
     @property
     def buf_capacity(self) -> int:
         return self.buf_data.size
