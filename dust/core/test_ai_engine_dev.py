@@ -9,13 +9,28 @@ def make_obs_data(o):
     obs = np.empty((), [('o', 'f4', len(o))])
     obs['o'] = np.asarray(o, dtype='f4')
     return obs
-    
 
-def test_create_brain():
+def test_brain():
     brain_def = BrainDef(5, 3, [])
     brain = Brain.create_new_instance(brain_def)
     state_dict = brain.state_dict()
-    exp = brain.evaluate(make_obs_data([1.,0.,1.,0.,1.]))
+    obs = make_obs_data([1.,0.,1.,0.,1.])
+    exp = brain.evaluate(obs)
+    assert np.array_equal(exp['obs'], obs)
+    assert not np.array_equal(exp['ext']['logp'], 0)
+    assert not np.array_equal(exp['val'], 0)
+    
+    # Save and load
+    sd = brain.state_dict()
+    brain = Brain.create_from_state_dict(sd)
+    
+    # Given the action, the brain should produce exactly
+    # the same result.
+    exp2 = brain.evaluate(exp['obs'], exp['act'])
+    assert np.array_equal(exp['obs'], exp2['obs'])
+    assert np.array_equal(exp['act'], exp2['act'])
+    assert np.array_equal(exp['ext'], exp2['ext'])
+    assert np.array_equal(exp['val'], exp2['val'])
 
 def test_create_terminal():
     brain_def = BrainDef(5, 3, [])

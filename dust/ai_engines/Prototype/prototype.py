@@ -124,7 +124,8 @@ class PrototypeAIEngine(AIEngine):
             obs_['o'] = obs
             a_['a'] = a
             e_['logp'] = logp
-            self.buf.store(obs_, a_, e_, r, v)
+            self.buf.store(self.buf.create_frame(
+                obs_, a_, e_, r, v))
             del self.ac_data
         
         def _update_round():
@@ -142,7 +143,11 @@ class PrototypeAIEngine(AIEngine):
                         logp=buf_data['ext']['logp'], ret=buf_data['ret'],
                         adv=buf_data['adv'])
             data = {k: torch.as_tensor(v, dtype=torch.float32) for k,v in data.items()}
-            pi_info_old, v_info_old, pi_info, v_info = self.trainer.update(data)
+            try:
+                pi_info_old, v_info_old, pi_info, v_info = self.trainer.update(data)
+            except RuntimeError:
+                print(data)
+                raise
             kl, ent, cf = pi_info['kl'], pi_info_old['ent'], pi_info['cf']
             delta_loss_pi = pi_info['loss'] - pi_info_old['loss']
             delta_loss_v = v_info['loss'] - v_info_old['loss']

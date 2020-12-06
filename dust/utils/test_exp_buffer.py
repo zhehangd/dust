@@ -15,11 +15,11 @@ def test_exp_buffer():
         gamma=0.9, lam=0.8)
     
     # 1 point reward is given at the end
-    buf.store(0, 0, 0.1, 0, 1)
-    buf.store(1, 1, 0.2, 0, 0)
-    buf.store(2, 0, 0.3, 0, 1)
-    buf.store(3, 2, 0.4, 0, 0)
-    buf.store(4, 3, 0.4, 1, 1)
+    buf.store(buf.create_frame(0, 0, 0.1, 0, 1))
+    buf.store(buf.create_frame(1, 1, 0.2, 0, 0))
+    buf.store(buf.create_frame(2, 0, 0.3, 0, 1))
+    buf.store(buf.create_frame(3, 2, 0.4, 0, 0))
+    buf.store(buf.create_frame(4, 3, 0.4, 1, 1))
     assert buf.buf_capacity == buf_capacity
     assert buf.buf_size == 5
     buf.finish_path(0)
@@ -77,12 +77,12 @@ def test_exp_buffer():
     # Add 6 new experience samples
     # We have retrieved 2 samples so 11 samples in total shouldn't
     # make the buffer full.
-    buf.store(5, 0, 0.8, 1, 1)
-    buf.store(6, 0, 0.7, 0, 1)
-    buf.store(7, 0, 0.6, 1, 1)
-    buf.store(8, 1, 0.5, 0, 1)
-    buf.store(9, 1, 0.4, -5, 1)
-    buf.store(0, 1, 0.3, 5, 1)
+    buf.store(buf.create_frame(5, 0, 0.8, 1, 1))
+    buf.store(buf.create_frame(6, 0, 0.7, 0, 1))
+    buf.store(buf.create_frame(7, 0, 0.6, 1, 1))
+    buf.store(buf.create_frame(8, 1, 0.5, 0, 1))
+    buf.store(buf.create_frame(9, 1, 0.4, -5, 1))
+    buf.store(buf.create_frame(0, 1, 0.3, 5, 1))
     
     # Let's retrieve a slice that includes the old path and a part of
     # the new path without finishing the new path first.

@@ -15,6 +15,8 @@ from dust.utils.su_core import create_default_actor_crtic
 from dust.utils.exp_buffer import ExpBuffer
 from dust.utils.trainer import Trainer
 
+from dust.utils import exp_buffer
+
 _argparser = _dust.argparser()
 
 _BUFFER_CAPACITY = 200
@@ -42,7 +44,8 @@ class Terminal(object):
         act_dtype = _make_act_type()
         ext_dtype = _make_ext_type()
         buf_capacity = _BUFFER_CAPACITY
-        buf = ExpBuffer(buf_capacity, obs_dtype, act_dtype, ext_dtype)
+        buf = exp_buffer.ExpBuffer(
+            buf_capacity, obs_dtype, act_dtype, ext_dtype)
         self.buf = buf
     
     def state_dict(self):
@@ -68,7 +71,7 @@ class Brain(object):
         self.act_dtype = _make_act_type()
         self.ext_dtype = _make_ext_type()
         
-        self.buf_dtype = ExpBuffer.generate_elem_dtype(
+        self.buf_dtype = exp_buffer.make_exp_frame_dtype(
             self.obs_dtype, self.act_dtype, self.ext_dtype)
         
         pi_model, v_model = create_default_actor_crtic(
@@ -96,7 +99,7 @@ class Brain(object):
         brain.v_model.load_state_dict(sd['v_model'])
         return brain
         
-    def evaluate(self, obs):
+    def evaluate(self, obs, act=None):
         """ Makes one prediction of policy and value
         
         If an action is not given, it takes a random action according to the
@@ -110,10 +113,13 @@ class Brain(object):
         
         assert obs.dtype == self.obs_dtype
         x = torch.as_tensor(obs['o'], dtype=torch.float32)
+        
         with torch.no_grad():
             pi = self.pi_model._distribution(x)
-            #a = pi.sample() if a is None else a
-            a = pi.sample()
+            if act is not None:
+                a = torch.as_tensor(act['a'], dtype=torch.int64)
+            else:
+                a = pi.sample()
             assert isinstance(a, torch.Tensor)
             assert a.ndim == 0 or a.ndim == 1
             logp_a = self.pi_model._log_prob_from_distribution(pi, a)
@@ -163,8 +169,9 @@ class AIEngineDev(object):
         return {"obs": None, "act": None, "ext": None}
     
     def add_experiences(self, data_batch):
-        for term_name, exp in data_batch.items():
-            assert {'obs', 'act', 'ext', 'rwd'}.issubset(exp.keys())
+        #for term_name, exp in data_batch.items():
+        #    #assert {'obs', 'act', 'ext', 'rwd'}.issubset(exp.keys())
+        pass
         
     
     def flush_experiences():

@@ -19,6 +19,14 @@ from dust.utils import su_core as core
 #   using structured arrays for obs/act.
 # * Save/load
 
+
+def make_exp_frame_dtype(
+        obs_dtype: Union[list, str, np.dtype],
+        act_dtype: Union[list, str, np.dtype],
+        ext_dtype: Union[list, str, np.dtype]):
+    return [('obs', obs_dtype), ('act', act_dtype), ('ext', ext_dtype),
+            ('rew', 'f4'),  ('val', 'f4'), ('adv', 'f4'), ('ret', 'f4')]
+
 class ExpBuffer(object):
     """
     A buffer for storing trajectories experienced by an agent interacting
@@ -67,13 +75,27 @@ class ExpBuffer(object):
         self.lam = lam
         self._buf_idx = 0
         self._path_start_idx = 0
+        self._obs_dtype = obs_dtype
+        self._act_dtype = act_dtype
+        self._ext_dtype = ext_dtype
+        self._exp_frame_dtype = make_exp_frame_dtype(
+            obs_dtype, act_dtype, ext_dtype)
 
-    @staticmethod
-    def generate_elem_dtype(obs_dtype: Union[list, str, np.dtype],
-                            act_dtype: Union[list, str, np.dtype],
-                            ext_dtype: Union[list, str, np.dtype]):
-        return [('obs', obs_dtype), ('act', act_dtype), ('ext', ext_dtype),
-                ('rew', 'f4'),  ('val', 'f4'), ('adv', 'f4'), ('ret', 'f4')]
+    @property
+    def obs_dtype(self):
+        return self._obs_dtype
+    
+    @property
+    def act_dtype(self):
+        return self._act_dtype
+    
+    @property
+    def ext_dtype(self):
+        return self._ext_dtype
+    
+    @property
+    def exp_frame_dtype(self):
+        return self._exp_frame_dtype
     
     @property
     def buf_capacity(self) -> int:
@@ -86,18 +108,27 @@ class ExpBuffer(object):
     @property
     def path_start_idx(self) -> int:
         return self._path_start_idx
-
-    def store(self, obs, act, ext, rew: float, val: float) -> None:
+    
+    def create_frame(self, obs=None, act=None, ext=None, rew=None, val=None):
+        frame = np.empty((), dtype=self._exp_frame_dtype)
+        if obs is not None:
+            frame['obs'] = obs
+        if act is not None:
+            frame['act'] = act
+        if ext is not None:
+            frame['ext'] = ext
+        if rew is not None:
+            frame['rew'] = rew
+        if val is not None:
+            frame['val'] = val
+        return frame
+    
+    def store(self, exp_frame) -> None:
         """
         Append one timestep of agent-environment interaction to the buffer.
         """
         assert self._buf_idx < self.buf_data.size     # buffer has to have room so you can store
-        buf_elem = self.buf_data[self._buf_idx]
-        buf_elem['obs'] = obs
-        buf_elem['act'] = act
-        buf_elem['ext'] = ext
-        buf_elem['rew'] = rew
-        buf_elem['val'] = val
+        self.buf_data[self._buf_idx] = exp_frame
         self._buf_idx += 1
 
     def finish_path(self, last_val: float = 0) -> None:
