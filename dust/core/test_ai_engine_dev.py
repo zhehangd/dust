@@ -34,9 +34,10 @@ def test_brain():
 
 def test_create_terminal():
     brain_def = BrainDef(5, 3, [])
-    brain = Brain.create_new_instance(brain_def)
-    term = Terminal.create_new_instance(brain)
-
+    term = Terminal.create_new_instance("b1", brain_def)
+    assert term.brain_name == "b1"
+    assert term.buf is not None
+    
 def test_ai_engine():
     brain_name = 'brain_01'
     term_name = 'terminal_01'
