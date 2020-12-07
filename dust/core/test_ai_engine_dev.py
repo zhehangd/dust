@@ -37,6 +37,7 @@ def test_create_terminal():
     term = Terminal.create_new_instance("b1", brain_def)
     assert term.brain_name == "b1"
     assert term.buf is not None
+    assert term.buf.buf_size == 0
     
 def test_ai_engine():
     brain_name = 'brain_01'
@@ -49,4 +50,20 @@ def test_ai_engine():
     
     engine.add_terminal(term_name, brain_name)
     assert len(engine.terminals) == 1
+    
+    t1_obs = engine.create_empty_obs(term_name)
+    t1_obs['o'] = [1.,0.,1.,0.,1.]
+    obs_dict = {term_name: t1_obs}
+    exp_dict = engine.evaluate(obs_dict)
+    assert len(exp_dict) == 1
+    exp = exp_dict[term_name]
+    assert np.array_equal(exp['obs'], t1_obs)
+    assert not np.array_equal(exp['ext']['logp'], 0)
+    assert not np.array_equal(exp['val'], 0)
+    
+    exp['rew'] = 1
+    engine.add_experiences(exp_dict)
+    
+    
+    
     

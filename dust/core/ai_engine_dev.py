@@ -19,7 +19,8 @@ from dust.utils import exp_buffer
 
 _argparser = _dust.argparser()
 
-_BUFFER_CAPACITY = 200
+_BUFFER_CAPACITY = 400
+_BUFFER_FLUSH_THRESHOLD = 200
 
 def _make_obs_type(num_obs):
     return [('o', 'f4', num_obs)]
@@ -38,6 +39,7 @@ class BrainDef(object):
         self.num_obs = num_obs
         self.num_acts = num_acts
         self.net_size = net_size
+        self.buf_size = _BUFFER_CAPACITY
 
 class Terminal(object):
     
@@ -56,7 +58,7 @@ class Terminal(object):
         obs_dtype = _make_obs_type(brain_def.num_obs)
         act_dtype = _make_act_type()
         ext_dtype = _make_ext_type()
-        buf_capacity = _BUFFER_CAPACITY
+        buf_capacity = brain_def.buf_size
         buf = exp_buffer.ExpBuffer(
             buf_capacity, obs_dtype, act_dtype, ext_dtype)
         self.buf = buf
@@ -94,7 +96,12 @@ class Brain(object):
     """ 
     """
     
-    def __init__(self, brain_def):
+    def __init__(self, brain_def=None, sd=None):
+        
+        if sd is not None:
+            assert brain_def is None
+            brain_def = sd['brain_def']
+        
         self.num_obs = brain_def.num_obs
         self.num_acts = brain_def.num_acts
         self.net_size = brain_def.net_size
@@ -109,6 +116,14 @@ class Brain(object):
             self.num_obs, self.num_acts, self.net_size)
         self.pi_model = pi_model
         self.v_model = v_model
+        if sd is not None:
+            self.pi_model.load_state_dict(sd['pi_model'])
+            self.v_model.load_state_dict(sd['v_model'])
+            self.trainer = Trainer.create_from_state_dict(
+                self.pi_model, self.v_model, sd['trainer'])
+        else:
+            self.trainer = Trainer.create_new_instance(
+                self.pi_model, self.v_model)
         
     @property
     def brain_def(self):
@@ -119,19 +134,18 @@ class Brain(object):
         sd['brain_def'] = self.brain_def
         sd['pi_model'] = self.pi_model.state_dict()
         sd['v_model'] = self.v_model.state_dict()
+        sd['trainer'] = self.trainer.state_dict()
         return sd
     
     @classmethod
     def create_new_instance(cls, brain_def) -> 'Brain':
-        brain = cls(brain_def)
+        brain = cls(brain_def=brain_def)
         return brain
     
     @classmethod
     def create_from_state_dict(cls, sd) -> 'Brain':
         brain_def = sd['brain_def']
-        brain = cls(brain_def)
-        brain.pi_model.load_state_dict(sd['pi_model'])
-        brain.v_model.load_state_dict(sd['v_model'])
+        brain = cls(sd=sd)
         return brain
     
     def evaluate(self, obs, act=None):
@@ -167,6 +181,9 @@ class Brain(object):
         exp['val'] = val
         return exp
 
+    def create_empty_obs(self):
+        return np.empty((), self.obs_dtype)
+    
 class AIEngineDev(object):
     
     def __init__(self):
@@ -196,32 +213,64 @@ class AIEngineDev(object):
     def remove_terminal(self, term_name):
         del self.terminals[term_name]
     
+    def create_empty_obs(self, term_name=None, brain_name=None):
+        assert (term_name is None) + (brain_name is None) == 1
+        if term_name:
+            brain_name = self.terminals[term_name].brain_name
+        assert brain_name is not None
+        return self.brains[brain_name].create_empty_obs()
+    
     def evaluate(self, obs_dict: dict):
         """ Evaluates observations
         "obs_dict" should be a dict in form of {term_name: obs}.
         Returns {term_name: obs}
         """
         exp_dict = dict()
-        for term_name, obs in obs_dict:
-            assert term_name in self.terminals
+        for term_name, obs in obs_dict.items():
+            assert term_name in self.terminals, \
+                '{} not in {}'.format(term_name, self.terminals.keys())
             term = self.terminals[term_name]
             brain_name = term.brain_name
-            assert brain in self.brains
-            brain = self.terminals[brain_name]
+            assert brain_name in self.brains
+            brain = self.brains[brain_name]
             exp = brain.evaluate(obs)
             exp_dict[term_name] = exp
         return exp_dict
     
     def add_experiences(self, exp_dict: dict) -> None:
-        #for term_name, exp in data_batch.items():
-        #    #assert {'obs', 'act', 'ext', 'rwd'}.issubset(exp.keys())
-        for term_name, exp in exp_dict:
-            assert term_name in self.terminals
+        for term_name, exp in exp_dict.items():
+            assert term_name in self.terminals, \
+                '{} not in {}'.format(term_name, self.terminals.keys())
             term = self.terminals[term_name]
             term.add_experience(exp)
     
-    def flush_experiences():
-        pass
+    def finish_paths(self, last_val_dict):
+        for term_name, last_val in last_val_dict:
+            self.terminals[self.term_name].finish_path(last_val)
+        
     
-    
+    def flush_experiences(self):
+        exp_paths = {} # brain_name : [path1, path2, ...]
+        num_terms = 0
+        for term_name, term in self.terminals:
+            if term.buf.buf_size <= _BUFFER_FLUSH_THRESHOLD:
+                continue
+            brain_name = term.brain_name
+            exp_path = term.get(_BUFFER_FLUSH_THRESHOLD)
+            if brain_name not in exp_paths:
+                exp_paths[brain_name] = list()
+            exp_paths[brain_name].append(exp_path)
+            num_terms += 1
+        logging.info('Flushed {} terminals'.format(num_terms)) 
+        
+        for brain_name, paths in exp_paths.items():
+            path_length = 0
+            for path in paths:
+                path_length += len(path)
+            # TODO: merge paths and send them to the trainer    
+            
+            #data = dict(obs=buf_data['obs']['o'], act=buf_data['act']['a'],
+            #            logp=buf_data['ext']['logp'], ret=buf_data['ret'],
+            #            adv=buf_data['adv'])
+            
     
