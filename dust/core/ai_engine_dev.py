@@ -40,6 +40,18 @@ class BrainDef(object):
         self.num_acts = num_acts
         self.net_size = net_size
         self.buf_size = _BUFFER_CAPACITY
+        
+    def obs_np2tensor(self, obs):
+        return {'o': torch.as_tensor(obs['o'], dtype=torch.float32)}
+    
+    def act_np2tensor(self, act):
+        return {'a': torch.as_tensor(act['a'], dtype=torch.float32)}
+    
+    def act_tensor2np(self, act):
+        shape = tuple(act['a'].shape)
+        act_ = np.empty(shape, dtype=[('a', 'i4')])
+        act_['a'] = act['a']
+        return act_
 
 class Terminal(object):
     
@@ -109,6 +121,7 @@ class Brain(object):
         self.obs_dtype = _make_obs_type(self.num_obs)
         self.act_dtype = _make_act_type()
         self.ext_dtype = _make_ext_type()
+        self._brain_def = brain_def
         self.exp_type = exp_buffer.make_exp_frame_dtype(
             self.obs_dtype, self.act_dtype, self.ext_dtype)
         
@@ -161,22 +174,21 @@ class Brain(object):
         """
         
         assert obs.dtype == self.obs_dtype
-        x = {'o': torch.as_tensor(obs['o'], dtype=torch.float32)}
-        
+        obs_ts = self._brain_def.obs_np2tensor(obs)
         with torch.no_grad():
-            act_dist, _ = self.pi_model(x)
+            act_dist, _ = self.pi_model(obs_ts)
             if act is not None:
-                a = {'a': torch.as_tensor(act['a'], dtype=torch.int64)}
+                act_ts = self._brain_def.act_np2tensor(act)
             else:
-                a = act_dist.sample()
-            assert isinstance(a['a'], torch.Tensor)
-            assert a['a'].ndim == 0 or a['a'].ndim == 1
-            logp_a = act_dist.log_prob(a)
-            val = self.v_model(x)
-        assert a['a'].shape == logp_a.shape
+                act_ts = act_dist.sample()
+            assert isinstance(act_ts['a'], torch.Tensor)
+            assert act_ts['a'].ndim == 0 or act_ts['a'].ndim == 1
+            logp_a = act_dist.log_prob(act_ts)
+            val = self.v_model(obs_ts)
+        assert act_ts['a'].shape == logp_a.shape
         exp = np.zeros((), dtype=self.exp_type)
         exp['obs'] = obs
-        exp['act']['a'] = a['a']
+        exp['act'] = self._brain_def.act_tensor2np(act_ts)
         exp['ext']['logp'] = logp_a
         exp['val'] = val
         return exp
