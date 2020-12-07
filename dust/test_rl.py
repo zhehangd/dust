@@ -67,11 +67,11 @@ def test_reinforcement_learning():
         """
         with torch.no_grad():
             assert isinstance(obs, torch.Tensor)
-            pi, _ = pi_model(obs)
-            a = pi.sample() if a is None else a
+            act_dist, _ = pi_model(obs)
+            a = act_dist.sample() if a is None else a
             assert isinstance(a, torch.Tensor)
             assert a.ndim == 0 or a.ndim == 1
-            logp_a = pi.log_prob(a)
+            logp_a = act_dist.log_prob(a)
             v = v_model(obs)
         assert a.shape == logp_a.shape
         return a, v, logp_a

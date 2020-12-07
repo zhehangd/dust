@@ -53,11 +53,11 @@ class MLPCategoricalActor(nn.Module):
         # optionally compute the log likelihood of given actions under
         # those distributions.
         logits = self.logits_net(obs)
-        pi = Categorical(logits=logits)
+        act_dist = ActionDistribution(Categorical(logits=logits))
         logp_a = None
         if act is not None:
-            logp_a = pi.log_prob(act)
-        return pi, logp_a
+            logp_a = act_dist.log_prob(act)
+        return act_dist, logp_a
 
 class MLPCritic(nn.Module):
 
@@ -67,6 +67,20 @@ class MLPCritic(nn.Module):
 
     def forward(self, obs):
         return torch.squeeze(self.v_net(obs), -1) # Critical to ensure v has right shape.
+
+class ActionDistribution(object):
+    
+    def __init__(self, cat):
+        self.cat = cat
+    
+    def sample(self):
+        return self.cat.sample()
+    
+    def entropy(self):
+        return self.cat.entropy()
+    
+    def log_prob(self, act):
+        return self.cat.log_prob(act)
 
 def create_default_actor_crtic(obs_dim, act_dim, net_size):
     """

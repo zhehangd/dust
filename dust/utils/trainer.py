@@ -16,7 +16,7 @@ def _compute_loss_pi(pi_model, data, clip_ratio=0.2):
     obs, act, adv, logp_old = data['obs'], data['act'], data['adv'], data['logp']
 
     # Policy loss
-    pi, logp = pi_model(obs, act)
+    act_dist, logp = pi_model(obs, act)
     # We should give act_dim=None to PPOBuffer
     # Giving a number, like 1, makes problems and is hard to find.
     # Here we try to detect this issue. 
@@ -29,7 +29,7 @@ def _compute_loss_pi(pi_model, data, clip_ratio=0.2):
 
     # Useful extra info
     approx_kl = (logp_old - logp).mean().item()
-    ent = pi.entropy().mean().item()
+    ent = act_dist.entropy().mean().item()
     clipped = ratio.gt(1+clip_ratio) | ratio.lt(1-clip_ratio)
     clipfrac = torch.as_tensor(clipped, dtype=torch.float32).mean().item()
     pi_info = dict(kl=approx_kl, ent=ent, cf=clipfrac, loss=loss_pi.item())
