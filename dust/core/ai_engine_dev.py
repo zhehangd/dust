@@ -176,7 +176,7 @@ class Brain(object):
         assert obs.dtype == self.obs_dtype
         obs_ts = self._brain_def.obs_np2tensor(obs)
         with torch.no_grad():
-            act_dist, _ = self.pi_model(obs_ts)
+            act_dist = self.pi_model(obs_ts)
             if act is not None:
                 act_ts = self._brain_def.act_np2tensor(act)
             else:

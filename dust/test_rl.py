@@ -67,7 +67,7 @@ def test_reinforcement_learning():
         """
         with torch.no_grad():
             assert isinstance(obs, torch.Tensor)
-            act_dist, _ = pi_model({'o': obs})
+            act_dist = pi_model({'o': obs})
             a = act_dist.sample() if a is None else a
             assert isinstance(a, torch.Tensor)
             assert a.ndim == 0 or a.ndim == 1

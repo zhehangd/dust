@@ -16,7 +16,8 @@ def _compute_loss_pi(pi_model, data, clip_ratio=0.2):
     obs, act, adv, logp_old = data['obs'], data['act'], data['adv'], data['logp']
 
     # Policy loss
-    act_dist, logp = pi_model(obs, act)
+    act_dist = pi_model(obs)
+    logp = act_dist.log_prob(act)
     # We should give act_dim=None to PPOBuffer
     # Giving a number, like 1, makes problems and is hard to find.
     # Here we try to detect this issue. 

@@ -48,16 +48,11 @@ class MLPCategoricalActor(nn.Module):
         super().__init__()
         self.logits_net = mlp([obs_dim] + list(hidden_sizes) + [act_dim], activation)
     
-    def forward(self, obs, act=None):
-        # Produce action distributions for given observations, and 
-        # optionally compute the log likelihood of given actions under
-        # those distributions.
+    def forward(self, obs):
+        # Produce action distributions for given observations
         logits = self.logits_net(obs['o'])
         act_dist = ActionDistribution(Categorical(logits=logits))
-        logp_a = None
-        if act is not None:
-            logp_a = act_dist.log_prob(act)
-        return act_dist, logp_a
+        return act_dist
 
 class MLPCritic(nn.Module):
 
