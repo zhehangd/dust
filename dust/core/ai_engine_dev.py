@@ -161,22 +161,22 @@ class Brain(object):
         """
         
         assert obs.dtype == self.obs_dtype
-        x = torch.as_tensor(obs['o'], dtype=torch.float32)
+        x = {'o': torch.as_tensor(obs['o'], dtype=torch.float32)}
         
         with torch.no_grad():
             act_dist, _ = self.pi_model(x)
             if act is not None:
-                a = torch.as_tensor(act['a'], dtype=torch.int64)
+                a = {'a': torch.as_tensor(act['a'], dtype=torch.int64)}
             else:
                 a = act_dist.sample()
-            assert isinstance(a, torch.Tensor)
-            assert a.ndim == 0 or a.ndim == 1
+            assert isinstance(a['a'], torch.Tensor)
+            assert a['a'].ndim == 0 or a['a'].ndim == 1
             logp_a = act_dist.log_prob(a)
             val = self.v_model(x)
-        assert a.shape == logp_a.shape
+        assert a['a'].shape == logp_a.shape
         exp = np.zeros((), dtype=self.exp_type)
         exp['obs'] = obs
-        exp['act']['a'] = a
+        exp['act']['a'] = a['a']
         exp['ext']['logp'] = logp_a
         exp['val'] = val
         return exp

@@ -69,18 +69,22 @@ class MLPCritic(nn.Module):
         return torch.squeeze(self.v_net(obs['o']), -1) # Critical to ensure v has right shape.
 
 class ActionDistribution(object):
+    """
+    Right now it is the same as 'Categorical'.
+    In the future it should support structured distributions.
+    """
     
     def __init__(self, cat):
         self.cat = cat
     
     def sample(self):
-        return self.cat.sample()
+        return {'a': self.cat.sample()}
     
     def entropy(self):
         return self.cat.entropy()
     
     def log_prob(self, act):
-        return self.cat.log_prob(act)
+        return self.cat.log_prob(act['a'])
 
 def create_default_actor_crtic(obs_dim, act_dim, net_size):
     """

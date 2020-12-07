@@ -40,11 +40,11 @@ def step(pi_model, v_model, obs, a=None):
         #assert isinstance(obs, torch.Tensor)
         pi, _ = pi_model(obs)
         a = pi.sample() if a is None else a
-        assert isinstance(a, torch.Tensor)
-        assert a.ndim == 0 or a.ndim == 1
+        #assert isinstance(a, torch.Tensor)
+        #assert a.ndim == 0 or a.ndim == 1
         logp_a = pi.log_prob(a)
         v = v_model(obs)
-    assert a.shape == logp_a.shape
+    #assert a.shape == logp_a.shape
     return a, v, logp_a
 
 class PrototypeAIEngine(AIEngine):
@@ -106,8 +106,8 @@ class PrototypeAIEngine(AIEngine):
         obs_ = {'o': torch.as_tensor(obs, dtype=torch.float32)}
         a, v, logp = step(self.pi_model, self.v_model, obs_)
         
-        self.ai_stub.set_action(a)
-        self.ac_data = (a, v, logp, obs)
+        self.ai_stub.set_action(a['a'])
+        self.ac_data = (a['a'], v, logp, obs)
     
     def update(self):
         ai_stub = self.ai_stub
@@ -139,8 +139,8 @@ class PrototypeAIEngine(AIEngine):
             buf_data = self.buf.get()
             data = dict(
                 obs={'o': torch.as_tensor(buf_data['obs']['o'], dtype=torch.float32)},
-                #act={'a': torch.as_tensor(buf_data['act']['a'], dtype=torch.float32)},
-                act=torch.as_tensor(buf_data['act']['a'], dtype=torch.float32),
+                act={'a': torch.as_tensor(buf_data['act']['a'], dtype=torch.float32)},
+                #act=torch.as_tensor(buf_data['act']['a'], dtype=torch.float32),
                 logp=torch.as_tensor(buf_data['ext']['logp'], dtype=torch.float32),
                 ret=torch.as_tensor(buf_data['ret'], dtype=torch.float32),
                 adv=torch.as_tensor(buf_data['adv'], dtype=torch.float32))
