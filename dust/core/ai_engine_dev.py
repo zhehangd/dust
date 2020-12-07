@@ -11,7 +11,7 @@ from dust import _dust
 from dust.core.ai_engine import AIEngine
 from dust.core import progress_log
 from dust.utils import np_utils
-from dust.utils.su_core import create_default_actor_crtic
+from dust.utils.su_core import create_default_actor_crtic, MLPCategoricalActor, MLPCritic
 from dust.utils.exp_buffer import ExpBuffer
 from dust.utils.trainer import Trainer
 
@@ -164,14 +164,14 @@ class Brain(object):
         x = torch.as_tensor(obs['o'], dtype=torch.float32)
         
         with torch.no_grad():
-            pi = self.pi_model._distribution(x)
+            pi, _ = self.pi_model(x)
             if act is not None:
                 a = torch.as_tensor(act['a'], dtype=torch.int64)
             else:
                 a = pi.sample()
             assert isinstance(a, torch.Tensor)
             assert a.ndim == 0 or a.ndim == 1
-            logp_a = self.pi_model._log_prob_from_distribution(pi, a)
+            logp_a = pi.log_prob(a)
             val = self.v_model(x)
         assert a.shape == logp_a.shape
         exp = np.zeros((), dtype=self.exp_type)
