@@ -52,7 +52,7 @@ class MLPCategoricalActor(nn.Module):
         # Produce action distributions for given observations, and 
         # optionally compute the log likelihood of given actions under
         # those distributions.
-        logits = self.logits_net(obs)
+        logits = self.logits_net(obs['o'])
         act_dist = ActionDistribution(Categorical(logits=logits))
         logp_a = None
         if act is not None:
@@ -66,7 +66,7 @@ class MLPCritic(nn.Module):
         self.v_net = mlp([obs_dim] + list(hidden_sizes) + [1], activation)
 
     def forward(self, obs):
-        return torch.squeeze(self.v_net(obs), -1) # Critical to ensure v has right shape.
+        return torch.squeeze(self.v_net(obs['o']), -1) # Critical to ensure v has right shape.
 
 class ActionDistribution(object):
     

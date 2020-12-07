@@ -37,7 +37,7 @@ def step(pi_model, v_model, obs, a=None):
     This function operates in a no_grad context. 
     """
     with torch.no_grad():
-        assert isinstance(obs, torch.Tensor)
+        #assert isinstance(obs, torch.Tensor)
         pi, _ = pi_model(obs)
         a = pi.sample() if a is None else a
         assert isinstance(a, torch.Tensor)
@@ -103,10 +103,8 @@ class PrototypeAIEngine(AIEngine):
     def perceive_and_act(self):
         
         obs = self.ai_stub.get_observation()
-        obs_tensor = torch.as_tensor(obs, dtype=torch.float32)
-        #if ac.use_cuda:
-        #    obs_tensor = obs_tensor.cuda()
-        a, v, logp = step(self.pi_model, self.v_model, obs_tensor)
+        obs_ = {'o': torch.as_tensor(obs, dtype=torch.float32)}
+        a, v, logp = step(self.pi_model, self.v_model, obs_)
         
         self.ai_stub.set_action(a)
         self.ac_data = (a, v, logp, obs)
@@ -131,23 +129,22 @@ class PrototypeAIEngine(AIEngine):
         def _update_round():
             if forced_round_end:
                 obs = self.ai_stub.get_observation()
-                obs_tensor = torch.as_tensor(obs, dtype=torch.float32)
-                _, v, _ = step(self.pi_model, self.v_model, obs_tensor)
+                obs_ = {'o': torch.as_tensor(obs, dtype=torch.float32)}
+                _, v, _ = step(self.pi_model, self.v_model, obs_)
             else:
                 v = 0
             self.buf.finish_path(v)
             
         def _update_epoch():
             buf_data = self.buf.get()
-            data = dict(obs=buf_data['obs']['o'], act=buf_data['act']['a'],
-                        logp=buf_data['ext']['logp'], ret=buf_data['ret'],
-                        adv=buf_data['adv'])
-            data = {k: torch.as_tensor(v, dtype=torch.float32) for k,v in data.items()}
-            try:
-                pi_info_old, v_info_old, pi_info, v_info = self.trainer.update(data)
-            except RuntimeError:
-                print(data)
-                raise
+            data = dict(
+                obs={'o': torch.as_tensor(buf_data['obs']['o'], dtype=torch.float32)},
+                #act={'a': torch.as_tensor(buf_data['act']['a'], dtype=torch.float32)},
+                act=torch.as_tensor(buf_data['act']['a'], dtype=torch.float32),
+                logp=torch.as_tensor(buf_data['ext']['logp'], dtype=torch.float32),
+                ret=torch.as_tensor(buf_data['ret'], dtype=torch.float32),
+                adv=torch.as_tensor(buf_data['adv'], dtype=torch.float32))
+            pi_info_old, v_info_old, pi_info, v_info = self.trainer.update(data)
             kl, ent, cf = pi_info['kl'], pi_info_old['ent'], pi_info['cf']
             delta_loss_pi = pi_info['loss'] - pi_info_old['loss']
             delta_loss_v = v_info['loss'] - v_info_old['loss']
