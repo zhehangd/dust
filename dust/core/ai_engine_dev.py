@@ -201,6 +201,7 @@ class AIEngineDev(object):
     def __init__(self):
         self.brains = {}
         self.terminals = {}
+        self.progress = None
     
     @classmethod
     def create_new_instance(cls) -> AIEngine:
@@ -210,6 +211,9 @@ class AIEngineDev(object):
     def create_from_state_dict(cls, sd) -> AIEngine:
         dv = cls()
         return dv
+    
+    def open_progress():
+        self.progress = progress_log.ProgressLog()
     
     def add_brain(self, brain_name, brain_def) -> int:
         assert brain_name not in self.brains
@@ -271,18 +275,35 @@ class AIEngineDev(object):
             exp_path = term.get(_BUFFER_FLUSH_THRESHOLD)
             if brain_name not in exp_paths:
                 exp_paths[brain_name] = list()
+            assert isinstance(exp_path, np.ndarray)
+            assert self.brains[brain_name].exp_type == exp_path.dtype
             exp_paths[brain_name].append(exp_path)
             num_terms += 1
         logging.info('Flushed {} terminals'.format(num_terms)) 
         
         for brain_name, paths in exp_paths.items():
-            path_length = 0
-            for path in paths:
-                path_length += len(path)
-            # TODO: merge paths and send them to the trainer    
+            assert isinstance(paths, list)
+            assert isinstance(paths, list)
+            path = np.concatenate(paths)
+            brain = self.brains[brain_name]
             
-            #data = dict(obs=buf_data['obs']['o'], act=buf_data['act']['a'],
-            #            logp=buf_data['ext']['logp'], ret=buf_data['ret'],
-            #            adv=buf_data['adv'])
+            trainer_data = dict(
+                obs=brain.brain_def.obs_np2tensor(path['obs']),
+                act=brain.brain_def.obs_np2tensor(path['act']),
+                logp=torch.as_tensor(path['ext']['logp'], dtype=torch.float32),
+                ret=torch.as_tensor(path['ret'], dtype=torch.float32),
+                adv=torch.as_tensor(path['adv'], dtype=torch.float32))
             
-    
+            trainer_ret = brain.trainer.update(train_data)
+            pi_info_old, v_info_old, pi_info, v_info = trainer_ret
+            kl, ent, cf = pi_info['kl'], pi_info_old['ent'], pi_info['cf']
+            delta_loss_pi = pi_info['loss'] - pi_info_old['loss']
+            delta_loss_v = v_info['loss'] - v_info_old['loss']
+            if self.progress:
+                self.progress.set_fields(
+                    LossPi=pi_info_old['loss'], LossV=v_info_old['loss'],
+                    KL=kl, Entropy=ent, ClipFrac=cf,
+                    DeltaLossPi=delta_loss_pi,
+                    DeltaLossV=delta_loss_v)
+                #self.progress.set_fields(epoch=self.curr_epoch, score=avg_round_reward)
+                self.progress.finish_line()
