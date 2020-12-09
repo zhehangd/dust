@@ -13,9 +13,20 @@ pip install -e .
 ## Train
 
 ```
-python -m dust.init --proj_name testproj
-cd testproj
+python -m dust.init
 python -m dust.train
+```
+
+## Continue training
+
+```
+python -m train --cont
+```
+
+## Demo
+
+```
+python -m --cont --demo --target_tick 500000
 ```
 
 ## Unit Test

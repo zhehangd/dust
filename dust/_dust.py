@@ -3,4 +3,3 @@
 
 from dust.core.init import *
 from dust.core.project import *
-from dust.core.frames import *
