@@ -109,6 +109,11 @@ class ExpBuffer(object):
     def path_start_idx(self) -> int:
         return self._path_start_idx
     
+    @property
+    def min_get_size(self) -> int:
+        return max(self._path_start_idx, self._buf_idx - 1)
+        
+    
     def create_frame(self, obs=None, act=None, ext=None, rew=None, val=None):
         frame = np.empty((), dtype=self._exp_frame_dtype)
         if obs is not None:

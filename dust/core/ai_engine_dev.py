@@ -66,13 +66,20 @@ class Terminal(object):
     
     """
     
-    def __init__(self, brain_name, brain_def):
-        obs_dtype = _make_obs_type(brain_def.num_obs)
-        act_dtype = _make_act_type()
-        ext_dtype = _make_ext_type()
-        buf_capacity = brain_def.buf_size
-        buf = exp_buffer.ExpBuffer(
-            buf_capacity, obs_dtype, act_dtype, ext_dtype)
+    def __init__(self, brain_name=None, brain_def=None, state_dict=None):
+        
+        if state_dict:
+            assert brain_name is None
+            assert brain_def is None
+            brain_name = state_dict['brain_name']
+            buf = state_dict['buf']
+        else:
+            obs_dtype = _make_obs_type(brain_def.num_obs)
+            act_dtype = _make_act_type()
+            ext_dtype = _make_ext_type()
+            buf_capacity = brain_def.buf_size
+            buf = exp_buffer.ExpBuffer(
+                buf_capacity, obs_dtype, act_dtype, ext_dtype)
         self.buf = buf
         self.brain_name = brain_name
     
@@ -91,6 +98,9 @@ class Terminal(object):
             exp (np.ndarray):
         """
         self.buf.store(exp)
+        
+    def finish_path(self, v):
+        self.buf.finish_path(v)
     
     @classmethod
     def create_new_instance(cls, brain_name, brain_def) -> 'Terminal':
@@ -99,9 +109,7 @@ class Terminal(object):
     
     @classmethod
     def create_from_state_dict(cls, sd) -> 'Terminal':
-        brain_name = sd['brain_name']
-        buf = sd['buf']
-        term = cls(brain_name, brain_def)
+        term = cls(state_dict=sd)
         return term
 
 class Brain(object):
@@ -157,7 +165,6 @@ class Brain(object):
     
     @classmethod
     def create_from_state_dict(cls, sd) -> 'Brain':
-        brain_def = sd['brain_def']
         brain = cls(sd=sd)
         return brain
     
@@ -198,22 +205,26 @@ class Brain(object):
     
 class AIEngineDev(object):
     
-    def __init__(self):
-        self.brains = {}
-        self.terminals = {}
-        self.progress = None
+    def __init__(self, brains, terminals):
+        self.brains = brains
+        self.terminals = terminals
+    
+    def state_dict(self):
+        brains = {bn: bs.state_dict() for bn, bs in self.brains.items()}
+        terminals = {tn: ts.state_dict() for tn, ts in self.terminals.items()}
+        return dict(brains=brains, terminals=terminals)
     
     @classmethod
     def create_new_instance(cls) -> AIEngine:
-        dv = cls()
+        return cls({}, {})
     
     @classmethod
     def create_from_state_dict(cls, sd) -> AIEngine:
-        dv = cls()
-        return dv
-    
-    def open_progress():
-        self.progress = progress_log.ProgressLog()
+        brains = {bn: Brain.create_from_state_dict(bsd) \
+            for bn, bsd in sd['brains'].items()}
+        terminals = {tn: Terminal.create_from_state_dict(tsd) \
+            for tn, tsd in sd['terminals'].items()}
+        return cls(brains, terminals)
     
     def add_brain(self, brain_name, brain_def) -> int:
         assert brain_name not in self.brains
@@ -261,49 +272,49 @@ class AIEngineDev(object):
             term.add_experience(exp)
     
     def finish_paths(self, last_val_dict):
-        for term_name, last_val in last_val_dict:
-            self.terminals[self.term_name].finish_path(last_val)
+        for term_name, last_val in last_val_dict.items():
+            self.terminals[term_name].finish_path(last_val)
         
     
     def flush_experiences(self):
         exp_paths = {} # brain_name : [path1, path2, ...]
         num_terms = 0
-        for term_name, term in self.terminals:
-            if term.buf.buf_size <= _BUFFER_FLUSH_THRESHOLD:
+        for term_name, term in self.terminals.items():
+            if term.buf.min_get_size > _BUFFER_FLUSH_THRESHOLD:
                 continue
             brain_name = term.brain_name
-            exp_path = term.get(_BUFFER_FLUSH_THRESHOLD)
+            exp_path = term.buf.get(_BUFFER_FLUSH_THRESHOLD)
             if brain_name not in exp_paths:
                 exp_paths[brain_name] = list()
             assert isinstance(exp_path, np.ndarray)
             assert self.brains[brain_name].exp_type == exp_path.dtype
             exp_paths[brain_name].append(exp_path)
             num_terms += 1
-        logging.info('Flushed {} terminals'.format(num_terms)) 
+        #logging.info('Flushed {} terminals'.format(num_terms)) 
+        
+        brain_rets = {}
         
         for brain_name, paths in exp_paths.items():
             assert isinstance(paths, list)
             assert isinstance(paths, list)
             path = np.concatenate(paths)
             brain = self.brains[brain_name]
-            
             trainer_data = dict(
                 obs=brain.brain_def.obs_np2tensor(path['obs']),
-                act=brain.brain_def.obs_np2tensor(path['act']),
+                act=brain.brain_def.act_np2tensor(path['act']),
                 logp=torch.as_tensor(path['ext']['logp'], dtype=torch.float32),
                 ret=torch.as_tensor(path['ret'], dtype=torch.float32),
                 adv=torch.as_tensor(path['adv'], dtype=torch.float32))
             
-            trainer_ret = brain.trainer.update(train_data)
+            trainer_ret = brain.trainer.update(trainer_data)
             pi_info_old, v_info_old, pi_info, v_info = trainer_ret
             kl, ent, cf = pi_info['kl'], pi_info_old['ent'], pi_info['cf']
             delta_loss_pi = pi_info['loss'] - pi_info_old['loss']
             delta_loss_v = v_info['loss'] - v_info_old['loss']
-            if self.progress:
-                self.progress.set_fields(
-                    LossPi=pi_info_old['loss'], LossV=v_info_old['loss'],
-                    KL=kl, Entropy=ent, ClipFrac=cf,
-                    DeltaLossPi=delta_loss_pi,
-                    DeltaLossV=delta_loss_v)
-                #self.progress.set_fields(epoch=self.curr_epoch, score=avg_round_reward)
-                self.progress.finish_line()
+            brain_rets[brain_name] = dict(
+                LossPi=pi_info_old['loss'],
+                LossV=v_info_old['loss'],
+                KL=kl, Entropy=ent, ClipFrac=cf,
+                DeltaLossPi=delta_loss_pi,
+                DeltaLossV=delta_loss_v)
+        return brain_rets

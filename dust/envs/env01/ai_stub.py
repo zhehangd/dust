@@ -1,26 +1,114 @@
+import logging
+
 import numpy as np
 
 from dust.core.env import EnvAIStub
 from dust.utils import np_utils
+from dust.core import progress_log
+
+import dust.core.ai_engine_dev as ai_engine
+
+BRAIN_NAME = 'brain01'
+TERM_NAME = 'term01'
+_EPOCH_LENGTH = 200
 
 class Env01Stub(EnvAIStub):
     
-    def __init__(self, env, state_dict: dict = None):
+    def __init__(self, env, freeze, state_dict: dict = None):
         if state_dict is not None:
-            assert isinstance(state_dict, dict) and len(state_dict) == 0
+            assert isinstance(state_dict, dict)
+            self.curr_epoch_tick = state_dict['curr_epoch_tick']
+            self.curr_epoch = state_dict['curr_epoch']
+            self.epoch_reward = state_dict['epoch_reward']
+            self.epoch_num_rounds = state_dict['epoch_num_rounds']
+            engine = ai_engine.AIEngineDev.create_from_state_dict(state_dict['engine'])
+        else:
+            self.curr_epoch_tick = 0
+            self.curr_epoch = 0
+            self.epoch_reward = 0 # reward collected in the epoch (NOT round)
+            self.epoch_num_rounds = 0
+            brain_def = ai_engine.BrainDef(25, 4, (16, 16))
+            engine = ai_engine.AIEngineDev.create_new_instance()
+            engine.add_brain(BRAIN_NAME, brain_def)
+            engine.add_terminal(TERM_NAME, BRAIN_NAME)
         self.env = env
         self.obs_dim = 25
         self.act_dim = 4
         self.net_size = (16,16)
+        self.engine = engine
+        self.freeze = freeze
+        if not freeze:
+            self.progress = progress_log.ProgressLog()
+        else:
+            self.progress = None
         
+    def state_dict(self) -> dict:
+        return {'engine': self.engine.state_dict(),
+                'curr_epoch_tick': self.curr_epoch_tick,
+                'curr_epoch': self.curr_epoch,
+                'epoch_reward': self.epoch_reward,
+                'epoch_num_rounds': self.epoch_num_rounds}
 
     @classmethod
-    def create_new_instance(cls, env_core) -> 'EnvAIStub':
-        return cls(env_core)
+    def create_new_instance(cls, env_core, freeze) -> 'EnvAIStub':
+        return cls(env_core, freeze)
     
     @classmethod
-    def create_from_state_dict(cls, env_core, state_dict) -> 'EnvAIStub':
-        return cls(env_core, state_dict)
+    def create_from_state_dict(cls, env_core, freeze, state_dict) -> 'EnvAIStub':
+        return cls(env_core, freeze, state_dict)
+    
+    def perceive_and_act(self) -> None:
+        """ Perceives environment state and takes actions
+        
+        """
+        obs = self.engine.create_empty_obs(brain_name=BRAIN_NAME)
+        obs['o'] = self.get_observation()
+        obs_dict = {TERM_NAME: obs}
+        
+        exp_dict = self.engine.evaluate(obs_dict)
+        exp = exp_dict[TERM_NAME]
+        self.set_action(exp['act'])
+        self.exp = exp
+
+    def update(self) -> None:
+        self.epoch_reward += self.env.tick_reward
+    
+        if not self.freeze:
+            self.exp['rew'] = self.env.tick_reward
+            self.engine.add_experiences({TERM_NAME: self.exp})
+            
+            end_of_epoch = self.curr_epoch_tick + 1 == _EPOCH_LENGTH
+            
+            forced_round_end = (not self.end_of_round) and end_of_epoch
+            
+            if self.env.end_of_round or end_of_epoch:
+                self.epoch_num_rounds += 1
+                self.env.end_of_round = True # Force env to end the round
+                if forced_round_end:
+                    obs = self.engine.create_empty_obs(brain_name=BRAIN_NAME)
+                    obs['o'] = self.get_observation()
+                    exp = self.engine.evaluate({TERM_NAME: obs})[TERM_NAME]
+                    last_val = exp['val']
+                else:
+                    last_val = 0
+                self.engine.finish_paths({TERM_NAME: last_val})
+            
+            if end_of_epoch:
+                avg_round_reward = self.epoch_reward / self.epoch_num_rounds
+                logging.info('EOE epoch: {} score: {}'.format(self.curr_epoch, avg_round_reward))
+                
+                fields = self.engine.flush_experiences()[BRAIN_NAME]
+                assert self.progress
+                self.progress.set_fields(epoch=self.curr_epoch, score=avg_round_reward)
+                self.progress.set_fields(**fields)
+                self.progress.finish_line()
+                
+                self.curr_epoch += 1
+                self.curr_epoch_tick = 0
+                self.epoch_reward = 0
+                self.epoch_num_rounds = 0
+            else:
+                self.curr_epoch_tick += 1
     
     def get_observation(self):
         """ Extract observation from the current env
@@ -53,6 +141,4 @@ class Env01Stub(EnvAIStub):
     def end_of_round(self, val) -> None:
         self.env.end_of_round = val
     
-    def state_dict(self) -> dict:
-        # Yes, no state
-        return {}
+    

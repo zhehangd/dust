@@ -15,10 +15,8 @@ from dust.utils.utils import FindTimestampedFile
 from dust.utils.state_dict import show_state_dict_content
 from dust.utils.dynamic_save import DynamicSave
 
-
 from dust.envs.env01.core import Env01Core
 from dust.envs.env01.ai_stub import Env01Stub
-from dust.ai_engines.Prototype.prototype import PrototypeAIEngine
 
 class MainLoopTimer(object):
     
@@ -47,10 +45,9 @@ class MainLoopTimer(object):
 
 class Train(object):
     
-    def __init__(self, env, ai_stub, ai_engine, demo_mode):
+    def __init__(self, env, ai_stub, demo_mode):
         self.env = env
         self.ai_stub = ai_stub
-        self.ai_engine = ai_engine
         self.save = DynamicSave(self.env.curr_tick, 1000, 10)
         self.timer = MainLoopTimer(0)
         self.demo_mode = demo_mode
@@ -62,19 +59,16 @@ class Train(object):
     @classmethod
     def create_new_instance(cls, env_name, demo_mode):
         env = Env01Core.create_new_instance()
-        ai_stub = Env01Stub.create_new_instance(env)
-        ai_engine = PrototypeAIEngine.create_new_instance(ai_stub, freeze=demo_mode)
-        train = cls(env, ai_stub, ai_engine, demo_mode)
+        ai_stub = Env01Stub.create_new_instance(env, freeze=demo_mode)
+        train = cls(env, ai_stub, demo_mode)
         train.env.new_simulation()
         return train
     
     @classmethod
     def create_from_state_dict(cls, env_name, demo_mode, sd):
         env = Env01Core.create_from_state_dict(sd['env_core'])
-        ai_stub = Env01Stub.create_from_state_dict(env, sd['env_ai_stub'])
-        ai_engine = PrototypeAIEngine.create_from_state_dict(
-            ai_stub, freeze=demo_mode, state_dict=sd['ai_engine'])
-        return cls(env, ai_stub, ai_engine, demo_mode)
+        ai_stub = Env01Stub.create_from_state_dict(env, freeze=demo_mode, state_dict=sd['env_ai_stub'])
+        return cls(env, ai_stub, demo_mode)
     
     def update(self):
         timer = self.timer
@@ -85,7 +79,7 @@ class Train(object):
         
         # Agents observe the environment and take action
         with timer.section('ai-act'):
-            self.ai_engine.perceive_and_act()
+            self.ai_stub.perceive_and_act()
         
         # Environment evolves
         with timer.section('env-evolve'):
@@ -94,7 +88,7 @@ class Train(object):
         # Agents get the feedback from the environment
         # and update themselves
         with timer.section('ai-update'):
-            self.ai_engine.update()
+            self.ai_stub.update()
         
         # Environment update its data and move to the
         # state of the next tick
@@ -118,7 +112,6 @@ class Train(object):
         sd['version'] = 'dev'
         sd['env_core'] = self.env.state_dict()
         sd['env_ai_stub'] = self.ai_stub.state_dict()
-        sd['ai_engine'] = self.ai_engine.state_dict()
         return sd
     
     def _save_state(self) -> str:
