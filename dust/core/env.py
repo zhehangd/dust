@@ -60,6 +60,7 @@ class EnvCore(_EnvComponent):
     def next_tick(self) -> None:
         raise NotImplementedError()
     
+    @property
     def curr_tick(self) -> int:
         raise NotImplementedError()
 

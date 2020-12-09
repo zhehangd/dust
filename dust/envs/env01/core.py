@@ -138,6 +138,7 @@ class Env01Core(EnvCore):
         self._curr_tick += 1
         self.curr_round_tick += 1
     
+    @property
     def curr_tick(self):
         return self._curr_tick
         
