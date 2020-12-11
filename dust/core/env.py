@@ -69,15 +69,6 @@ class EnvAIStub(_EnvComponent):
     
     This is one of the three base classes an environment should implement.
     This one involves the interaction between an environment and an AI engine.
-    
-    A subclass should implement:
-        get_observation
-        set_action
-        state_dict
-        load_state_dict
-        
-    Attributes:
-    
     """
     
     @classmethod
@@ -88,22 +79,17 @@ class EnvAIStub(_EnvComponent):
     def create_from_state_dict(cls, env_core, state_dict) -> 'EnvAIStub':
         raise NotImplementedError()
     
-    def get_observation(self) -> None:
+    def perceive_and_act(self) -> None:
+        """ Perceives environment state and takes actions
+        
+        By design called after EnvCore.next_tick and before EnvCore.evolve.
+        Typically this function should observe the state of the environment
+        and assign the actions taken by the characters in the current tick.
+        
+        """
         raise NotImplementedError()
-    
-    def set_action(self, a) -> None:
-        raise NotImplementedError()
-    
-    @property
-    def tick_reward(self) -> int:
-        raise NotImplementedError()
-    
-    @property
-    def end_of_round(self) -> bool:
-        raise NotImplementedError()
-    
-    @end_of_round.setter
-    def end_of_round(self, val) -> None:
+
+    def update(self) -> None:
         raise NotImplementedError()
 
 class EnvDisplay(_EnvComponent):

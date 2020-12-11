@@ -32,9 +32,6 @@ class Env01Stub(EnvAIStub):
             engine.add_brain(BRAIN_NAME, brain_def)
             engine.add_terminal(TERM_NAME, BRAIN_NAME)
         self.env = env
-        self.obs_dim = 25
-        self.act_dim = 4
-        self.net_size = (16,16)
         self.engine = engine
         self.freeze = freeze
         if not freeze:
@@ -62,12 +59,12 @@ class Env01Stub(EnvAIStub):
         
         """
         obs = self.engine.create_empty_obs(brain_name=BRAIN_NAME)
-        obs['o'] = self.get_observation()
+        obs['o'] = self._get_observation()
         obs_dict = {TERM_NAME: obs}
         
         exp_dict = self.engine.evaluate(obs_dict)
         exp = exp_dict[TERM_NAME]
-        self.set_action(exp['act'])
+        self.self.env.next_action[:](exp['act'])
         self.exp = exp
 
     def update(self) -> None:
@@ -79,14 +76,14 @@ class Env01Stub(EnvAIStub):
             
             end_of_epoch = self.curr_epoch_tick + 1 == _EPOCH_LENGTH
             
-            forced_round_end = (not self.end_of_round) and end_of_epoch
+            forced_round_end = (not self.env.end_of_round) and end_of_epoch
             
             if self.env.end_of_round or end_of_epoch:
                 self.epoch_num_rounds += 1
                 self.env.end_of_round = True # Force env to end the round
                 if forced_round_end:
                     obs = self.engine.create_empty_obs(brain_name=BRAIN_NAME)
-                    obs['o'] = self.get_observation()
+                    obs['o'] = self._get_observation()
                     exp = self.engine.evaluate({TERM_NAME: obs})[TERM_NAME]
                     last_val = exp['val']
                 else:
@@ -110,7 +107,7 @@ class Env01Stub(EnvAIStub):
             else:
                 self.curr_epoch_tick += 1
     
-    def get_observation(self):
+    def _get_observation(self):
         """ Extract observation from the current env
         """
         def index_to_coords(idxs, h):
@@ -125,20 +122,7 @@ class Env01Stub(EnvAIStub):
         obs = np_utils.extract_view(map_state, coords, 2, True)
         obs = obs.reshape((len(obs), -1))
         return obs
-     
-    def set_action(self, a):
-        self.env.next_action[:] = a
-    
-    @property
-    def tick_reward(self) -> int:
-        return self.env.tick_reward
-    
-    @property
-    def end_of_round(self) -> bool:
-        return self.env.end_of_round
-    
-    @end_of_round.setter
-    def end_of_round(self, val) -> None:
-        self.env.end_of_round = val
+
+
     
     

@@ -43,7 +43,7 @@ class MainLoopTimer(object):
         self.time_count = 0
         return msg
 
-class Train(object):
+class Simulation(object):
     
     def __init__(self, env, ai_stub, demo_mode):
         self.env = env
@@ -156,9 +156,9 @@ if __name__ == '__main__':
         save_filename = FindTimestampedFile('saves', 'save.*.pickle').get_latest_file()
         with open(save_filename, 'rb') as f:
             sd = pickle.loads(f.read())
-        sim = Train.create_from_state_dict(env_name, proj.args.demo, sd)
+        sim = Simulation.create_from_state_dict(env_name, proj.args.demo, sd)
     else:
-        sim = Train.create_new_instance(env_name, proj.args.demo)
+        sim = Simulation.create_new_instance(env_name, proj.args.demo)
     
     logging.info('Starting training...')
     
