@@ -64,7 +64,7 @@ class Env01Stub(EnvAIStub):
         
         exp_dict = self.engine.evaluate(obs_dict)
         exp = exp_dict[TERM_NAME]
-        self.self.env.next_action[:](exp['act'])
+        self.env.next_action[:] = exp['act']
         self.exp = exp
 
     def update(self) -> None:
