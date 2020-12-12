@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from dust.utils.su_core import create_default_actor_crtic
-from dust.utils.ppo_buffer import PPOBuffer
+from dust.utils.exp_buffer import ExpBuffer
 from dust.utils.trainer import Trainer
 
 def make_one_line(obj):
@@ -19,6 +19,11 @@ def test_reinforcement_learning():
     num_actions = 2
     buf_size = 3
     hidden_size = []
+    
+    obs_dtype = [('o', 'f4', obs_size)]
+    act_dtype = [('a', 'i4')]
+    ext_dtype = [('logp','f4')]
+    
     pi_model, v_model = create_default_actor_crtic(
         obs_size, num_actions, hidden_size)
 
@@ -66,26 +71,27 @@ def test_reinforcement_learning():
         This function operates in a no_grad context. 
         """
         with torch.no_grad():
-            assert isinstance(obs, torch.Tensor)
-            act_dist = pi_model({'o': obs})
+            assert isinstance(obs['o'], torch.Tensor)
+            act_dist = pi_model(obs)
             a = act_dist.sample() if a is None else a
-            assert isinstance(a, torch.Tensor)
-            assert a.ndim == 0 or a.ndim == 1
-            logp_a = act_dist.log_prob({'a': a})
-            v = v_model({'o': obs})
-        assert a.shape == logp_a.shape
+            assert isinstance(a['a'], torch.Tensor)
+            assert a['a'].ndim == 0 or a['a'].ndim == 1
+            logp_a = act_dist.log_prob(a)
+            v = v_model(obs)
+        assert a['a'].shape == logp_a.shape
         return a, v, logp_a
 
     def make_policy_value_table():
         # Three one-hot state and two actions
         # Assumes step function
-        obs = torch.from_numpy(np.eye(3, dtype=np.float32))
-        given_a = torch.full((3,), 0, dtype=torch.int64)
+        
+        obs = {'o': torch.from_numpy(np.eye(3, dtype=np.float32))}
+        given_a = {'a': torch.full((3,), 0, dtype=torch.int64)}
         a_0, v, logp_a_0 = step(obs, given_a)
         obs_table = obs
         value_table = v
 
-        given_a = torch.full((3,), 1, dtype=torch.int64)
+        given_a = {'a': torch.full((3,), 1, dtype=torch.int64)}
         a_1, v, logp_a_1 = step(obs, given_a)
         assert torch.equal(value_table, v)
 
@@ -102,32 +108,36 @@ def test_reinforcement_learning():
     """
     
     # -----------------------------------------
-
-    # Make atricicial trajectory
-    buf = PPOBuffer(obs_size, None, buf_size)
-
-    # obs(index)-action-reward sequence
-    iar_seq = [(0, 0, 0.0),(1, 1, 0.0), (2, 0, 1.0)]
-
-    for i, a, r in iar_seq:
-        o = obs_table[i]
-        v = value_table[i]
-        logp = logp_a_table[i, a]
-        buf.store(o, a, r, v, logp)
-    buf.finish_path(0)
+    
+    buf = ExpBuffer(buf_size, obs_dtype, act_dtype, ext_dtype)
+    obs = {'o': torch.eye(3)}
+    act = {'a': torch.tensor((0,1,0))}
+    _, v, logp = step(obs, act)
+    
+    obs_ = np.empty(3, dtype=obs_dtype)
+    obs_['o'] = np.eye(3)
+    act_ = np.zeros(3, dtype=act_dtype)
+    act_['a']=[0,1,0]
+    val_ = v.numpy()
+    ext_ = np.empty(3, dtype=ext_dtype)
+    ext_['logp'] = logp.numpy()
+    rew_ = np.array([0., 0., 1.])
+    
+    for i in range(3):
+        frame = buf.create_frame(obs_[i], act_[i], ext_[i], rew_[i], val_[i])
+        buf.store(frame)
+    buf.finish_path()
     buf_data = buf.get()
-
-    #print('buf_data:')
-    #for key, val in buf_data.items():
-    #    print('  - {}: {}'.format(key, make_one_line(val)))
-
-    # -----------------------------------------
-
-
+    
+    trainer_data = dict(
+        obs = {'o': torch.as_tensor(buf_data['obs']['o'], dtype=torch.float32)},
+        act = {'a': torch.as_tensor(buf_data['act']['a'], dtype=torch.float32)},
+        logp = torch.as_tensor(buf_data['ext']['logp'], dtype=torch.float32),
+        ret = torch.as_tensor(buf_data['ret'], dtype=torch.float32),
+        adv = torch.as_tensor(buf_data['adv'], dtype=torch.float32))
+    
     trainer = Trainer.create_new_instance(pi_model, v_model)
-    buf_data['obs'] = {'o': buf_data['obs']}
-    buf_data['act'] = {'a': buf_data['act']}
-    pi_info_old, v_info_old, pi_info, v_info = trainer.update(buf_data)
+    pi_info_old, v_info_old, pi_info, v_info = trainer.update(trainer_data)
 
     kl, ent, cf = pi_info['kl'], pi_info_old['ent'], pi_info['cf']
     delta_loss_pi = pi_info['loss'] - pi_info_old['loss']
@@ -156,7 +166,7 @@ def test_reinforcement_learning():
 
     #print ('Reference reuslt:')
     
-    torch.testing.assert_allclose(test_obs_table,
+    torch.testing.assert_allclose(test_obs_table['o'],
         torch.tensor([[1.,0.,0.],[0.,1.,0.],[0.,0.,1.]]))
     torch.testing.assert_allclose(test_value_table,
         torch.tensor([0.6528,-0.3439,0.6530]))
