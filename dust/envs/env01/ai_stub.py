@@ -6,7 +6,7 @@ from dust.core.env import EnvAIStub
 from dust.utils import np_utils
 from dust.core import progress_log
 
-import dust.core.ai_engine_dev as ai_engine
+from dust.ai_engines import prototype
 
 BRAIN_NAME = 'brain01'
 TERM_NAME = 'term01'
@@ -21,14 +21,14 @@ class Env01Stub(EnvAIStub):
             self.curr_epoch = state_dict['curr_epoch']
             self.epoch_reward = state_dict['epoch_reward']
             self.epoch_num_rounds = state_dict['epoch_num_rounds']
-            engine = ai_engine.AIEngineDev.create_from_state_dict(state_dict['engine'])
+            engine = prototype.Engine.create_from_state_dict(state_dict['engine'])
         else:
             self.curr_epoch_tick = 0
             self.curr_epoch = 0
             self.epoch_reward = 0 # reward collected in the epoch (NOT round)
             self.epoch_num_rounds = 0
-            brain_def = ai_engine.BrainDef(25, 4, (16, 16))
-            engine = ai_engine.AIEngineDev.create_new_instance()
+            brain_def = prototype.BrainDef(25, 4, (16, 16))
+            engine = prototype.Engine.create_new_instance()
             engine.add_brain(BRAIN_NAME, brain_def)
             engine.add_terminal(TERM_NAME, BRAIN_NAME)
         self.env = env

@@ -8,7 +8,6 @@ import numpy as np
 import scipy.signal
 
 from dust import _dust
-from dust.core.ai_engine import AIEngine
 from dust.core import progress_log
 from dust.utils import np_utils
 from dust.utils.su_core import create_default_actor_crtic, MLPCategoricalActor, MLPCritic
@@ -203,7 +202,7 @@ class Brain(object):
     def create_empty_obs(self):
         return np.empty((), self.obs_dtype)
     
-class AIEngineDev(object):
+class Engine(object):
     
     def __init__(self, brains, terminals):
         self.brains = brains
@@ -215,11 +214,11 @@ class AIEngineDev(object):
         return dict(brains=brains, terminals=terminals)
     
     @classmethod
-    def create_new_instance(cls) -> AIEngine:
+    def create_new_instance(cls):
         return cls({}, {})
     
     @classmethod
-    def create_from_state_dict(cls, sd) -> AIEngine:
+    def create_from_state_dict(cls, sd):
         brains = {bn: Brain.create_from_state_dict(bsd) \
             for bn, bsd in sd['brains'].items()}
         terminals = {tn: Terminal.create_from_state_dict(tsd) \
