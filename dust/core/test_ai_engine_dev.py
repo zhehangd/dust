@@ -44,7 +44,7 @@ def test_ai_engine():
     term_name = 'terminal_01'
     brain_def = BrainDef(5, 3, [])
     
-    engine = AIEngineDev()
+    engine = AIEngineDev.create_new_instance()
     engine.add_brain(brain_name, brain_def)
     assert len(engine.brains) == 1
     
