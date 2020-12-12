@@ -19,7 +19,7 @@ class Project(object):
     Projects are configured by args.
     """
     
-    def __init__(self, sess_name, proj_dir, timestamp, init, args):
+    def __init__(self, sess_name, proj_dir, timestamp, init):
         self.timestamp = datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S')
         self.proj_dir = os.getcwd()
         self.sess_name = sess_name
@@ -27,18 +27,22 @@ class Project(object):
         
         proj_file = os.path.join(self.proj_dir, _PROJECT_FILE)
         cfg = arg_and_cfg_parser.Namespace()
-        
+        args = arg_and_cfg_parser.Namespace()
         if not init:
             if not os.path.isfile(proj_file):
                 raise RuntimeError('{} is not found in "{}"'\
                     .format(_PROJECT_FILE, self.proj_dir))
             proj_dict = toml.load(proj_file)
             cfg.__dict__.update(proj_dict['cfg'])
-        
-        args, cfg = dust.core.init.argparser().parse_args(args, cfg)
         self.cfg = cfg
         self.args = args
         
+    def parse_args(self, args=None):
+        args, cfg = dust.core.init.argparser().parse_args(args, self.cfg)
+        self.cfg = cfg
+        self.args = args
+    
+    def log_proj_info(self):
         logging.info('Session: {}'.format(self.sess_name))
         logging.info('Args: {}'.format(self.args))
         logging.info('Config: {}'.format(self.cfg))
@@ -61,7 +65,7 @@ def project():
     assert isinstance(_PROJECT, Project), 'You haven\'t loaded a project.'
     return _PROJECT
 
-def _create_project(sess_name, args, init):
+def _create_project(sess_name, init):
     """ Inits and enters a project
     """
     global _PROJECT
@@ -73,14 +77,14 @@ def _create_project(sess_name, args, init):
     log_file = os.path.join(proj_dir, 'logs', 'log.{}.{}.log'.format(sess_name, timestamp))
     _setup_project_logger(log_file) # One may use logging after this line
     _PROJECT = Project(sess_name=sess_name, proj_dir=proj_dir,
-                   timestamp=timestamp, init=True, args=args)
+                   timestamp=timestamp, init=init)
     return _PROJECT
 
-def create_project(sess_name='default', args=None):
-    return _create_project(sess_name, args, True)
+def create_project(sess_name='default'):
+    return _create_project(sess_name, True)
 
-def load_project(sess_name, args=None):
-    return _create_project(sess_name, args, False)
+def load_project(sess_name='default'):
+    return _create_project(sess_name, False)
 
 def _setup_project_logger(log_file=None):
     logger = logging.getLogger(None)

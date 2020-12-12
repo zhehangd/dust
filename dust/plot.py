@@ -31,6 +31,8 @@ if __name__ == '__main__':
             'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
 
     proj = _dust.load_project('plot')
+    proj.parse_args()
+    proj.log_proj_info()
     
     logging.info('Plotting training progress...')
     
