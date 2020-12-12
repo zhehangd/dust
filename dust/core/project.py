@@ -6,21 +6,11 @@ import sys
 import toml
 
 import dust.core.init
+from dust.utils import arg_and_cfg_parser
 
 _PROJECT = None
 
 _PROJECT_FILE = 'project.toml'
-
-_ARG_PARSER = dust.core.init.argparser()
-
-_ARG_PARSER.add_argument(
-    '--proj_dir',
-    help='Directory of the project')
-
-_ARG_PARSER.add_argument(
-    '--save_cfg',
-    type=bool, default=True, 
-    help='Save project configuration')
 
 class Project(object):
     """
@@ -29,8 +19,30 @@ class Project(object):
     Projects are configured by args.
     """
     
-    def __init__(self):
-        self.time_tag = datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S')
+    def __init__(self, sess_name, proj_dir, timestamp, init, args):
+        self.timestamp = datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S')
+        self.proj_dir = os.getcwd()
+        self.sess_name = sess_name
+        
+        
+        proj_file = os.path.join(self.proj_dir, _PROJECT_FILE)
+        cfg = arg_and_cfg_parser.Namespace()
+        
+        if not init:
+            if not os.path.isfile(proj_file):
+                raise RuntimeError('{} is not found in "{}"'\
+                    .format(_PROJECT_FILE, self.proj_dir))
+            proj_dict = toml.load(proj_file)
+            cfg.__dict__.update(proj_dict['cfg'])
+        
+        args, cfg = dust.core.init.argparser().parse_args(args, cfg)
+        self.cfg = cfg
+        self.args = args
+        
+        logging.info('Session: {}'.format(self.sess_name))
+        logging.info('Args: {}'.format(self.args))
+        logging.info('Config: {}'.format(self.cfg))
+        logging.info('Timestamp: {}'.format(self.timestamp))
     
     def save_project(self):
         proj_file = os.path.join(self.proj_dir, _PROJECT_FILE)
@@ -49,85 +61,28 @@ def project():
     assert isinstance(_PROJECT, Project), 'You haven\'t loaded a project.'
     return _PROJECT
 
-def create_project(sess_name, args=None):
+def _create_project(sess_name, args, init):
     """ Inits and enters a project
     """
     global _PROJECT
     assert _PROJECT is None, 'Project has been created'
     
-    args, cfg = _ARG_PARSER.parse_args(args)
-    _ARG_PARSER.fill_default_config(cfg)
+    timestamp = datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S')
+    proj_dir = os.getcwd()
     
-    proj = Project()
-    
-    # Either use the current dir or the one provided by args
-    proj_dir = os.path.realpath(args.proj_dir or os.getcwd())
-    os.makedirs(proj_dir, exist_ok=True)
-    
-    proj.proj_dir = proj_dir
-    proj.args = args
-    proj.cfg = cfg
-    proj.save_project()
-    
-    #proj.cfg.update(args.cfg.__dict__)
-    
-    #with open(proj_file, 'w') as f:
-    #    toml.dump({}, f)
-    
-    _PROJECT = proj # One may use project() after this line
-    _setup_project_logger(sess_name) # One may use logging after this line
-    logging.info('Session: {}'.format(sess_name))
-    logging.info('Project created')
-    logging.info('Args: {}'.format(proj.args))
-    logging.info('Config: {}'.format(proj.cfg))
-    logging.info('Timestamp: {}'.format(proj.time_tag))
-    return proj
+    log_file = os.path.join(proj_dir, 'logs', 'log.{}.{}.log'.format(sess_name, timestamp))
+    _setup_project_logger(log_file) # One may use logging after this line
+    _PROJECT = Project(sess_name=sess_name, proj_dir=proj_dir,
+                   timestamp=timestamp, init=True, args=args)
+    return _PROJECT
+
+def create_project(sess_name='default', args=None):
+    return _create_project(sess_name, args, True)
 
 def load_project(sess_name, args=None):
-    """
-    """
-    global _PROJECT
-    assert _PROJECT is None, 'Project has been created'
-    
-    args, cfg = _ARG_PARSER.parse_args(args)
-    proj = Project()
-    
-    proj_dir = os.path.realpath(args.proj_dir or os.getcwd())
-    proj.proj_dir = proj_dir
-    proj.args = args
-    proj.cfg = cfg
-    
-    proj_file = os.path.join(proj_dir, _PROJECT_FILE)
-    if not os.path.isfile(proj_file):
-        raise RuntimeError('{} is not found in "{}"'\
-            .format(_PROJECT_FILE, proj_dir))
-    
-    proj_dict = toml.load(proj_file)
-    proj.cfg.update(proj_dict['cfg'])
-    _ARG_PARSER.fill_default_config(cfg)
-    
-    if args.save_cfg:
-        proj.save_project()
-    
-    _PROJECT = proj # One may use project() after this line
-    _setup_project_logger(sess_name) # One may use logging after this line
-    logging.info('Session: {}'.format(sess_name))
-    logging.info('Project loaded')
-    logging.info('Args: {}'.format(proj.args))
-    logging.info('Config: {}'.format(proj.cfg))
-    logging.info('Timestamp: {}'.format(proj.time_tag))
-    return proj
+    return _create_project(sess_name, args, False)
 
-def _setup_project_logger(sess_name=None):
-    
-    time_tag = project().time_tag
-    
-    if sess_name:
-        log_filename = 'log.{}.{}.log'.format(sess_name, time_tag)
-    else:
-        log_filename = 'log.{}.log'.format(time_tag)
-    log_pathname = os.path.join(project().proj_dir, 'logs', log_filename)
-    
+def _setup_project_logger(log_file=None):
     logger = logging.getLogger(None)
     logger.setLevel(logging.INFO)
     # e.g. 2020-10-08 22:26:03,509 INFO
@@ -139,7 +94,8 @@ def _setup_project_logger(sess_name=None):
     logger.addHandler(handler)
 
     # Log to file
-    os.makedirs(os.path.dirname(os.path.abspath(log_pathname)), exist_ok=True)
-    handler = logging.FileHandler(log_pathname)
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    if log_file:
+        os.makedirs(os.path.dirname(os.path.abspath(log_file)), exist_ok=True)
+        handler = logging.FileHandler(log_file)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)

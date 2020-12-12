@@ -81,7 +81,7 @@ if __name__ == '__main__':
     
     plot_filename = \
         '{}/plots/plot.{}.png'.format(
-        proj.proj_dir, proj.time_tag)
+        proj.proj_dir, proj.timestamp)
     os.makedirs(os.path.dirname(plot_filename), exist_ok=True)
     plt.savefig(plot_filename, dpi=72)
     

@@ -128,30 +128,25 @@ if __name__ == '__main__':
     _argparser = _dust.argparser()
 
     _argparser.add_argument(
-        '--timing_ticks',
-        type=int, default=16000,
+        '--timing_ticks', type=int, default=16000,
         help='Number of ticks between each timing')
     
     _argparser.add_argument(
-        '--target_tick', 
-        type=int, default=50000,
+        '--target_tick', type=int, default=50000,
         help='Train until reaching the given tick')
     
     _argparser.add_argument(
-        '--cont',
-        type=bool, default=False,
+        '--cont', action='store_true',
         help='Continue training')
     
-    
     _argparser.add_argument(
-        '--demo',
-        type=bool, default=False,
+        '--demo', action='store_true',
         help='Demo mode')
     
     env_name = "env01"
     
     proj = _dust.load_project('train')
-        
+    
     if proj.args.cont:
         save_filename = FindTimestampedFile('saves', 'save.*.pickle').get_latest_file()
         with open(save_filename, 'rb') as f:

@@ -23,7 +23,7 @@ class ProgressLog(object):
         if _dust.inside_project():
             proj = _dust.project()
             progress_filename = '{}/logs/progress.{}.txt'.format(
-                proj.proj_dir, proj.time_tag)
+                proj.proj_dir, proj.timestamp)
             os.makedirs(os.path.dirname(progress_filename), exist_ok=True)
             self._file = open(progress_filename, 'w')
         else:

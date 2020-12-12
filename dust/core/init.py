@@ -5,13 +5,13 @@ from typing import Callable
 
 from dust.core.env import EnvCore, EnvAIStub, EnvDisplay, EnvRecord
 from dust.core.ai_engine import AIEngine, AIEngineRecord
-from dust.utils._arg_cfg_parse import ArgCfgParser
+from dust.utils import arg_and_cfg_parser
 
 _ENV_REGISTRY = {}
 
 _AI_ENGINE_REGISTRY = {}
 
-_ARG_PARSER = ArgCfgParser()
+_ARG_PARSER = arg_and_cfg_parser.ArgumentAndConfigParser()
 
 def register_env(name: str, record: EnvRecord) -> None:
     """ Registers an environment.
@@ -83,7 +83,7 @@ def register_all_ai_engine_arguments() -> None:
         sys.stderr.write('Register AI engine {} arguments.\n'.format(engine_name))
         record.register_args()
 
-def argparser() -> ArgCfgParser:
+def argparser() -> arg_and_cfg_parser.ArgumentAndConfigParser:
     """ Returns the global argparser
     
     We maintain a single argparser for all dust modules.
