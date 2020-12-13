@@ -37,8 +37,9 @@ class Project(object):
         self.cfg = cfg
         self.args = args
         
-    def parse_args(self, args=None):
-        args, cfg = dust.core.init.argparser().parse_args(args, self.cfg)
+    def parse_args(self, args=None, allow_unknown=False):
+        parser = dust.core.init.argparser()
+        args, cfg = parser.parse_args(args, self.cfg, allow_unknown=allow_unknown)
         self.cfg = cfg
         self.args = args
     

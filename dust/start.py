@@ -143,8 +143,6 @@ if __name__ == '__main__':
         '--demo', action='store_true',
         help='Demo mode')
     
-    env_name = "env01"
-    
     proj = _dust.load_project('train')
     proj.parse_args()
     proj.log_proj_info()
@@ -153,8 +151,7 @@ if __name__ == '__main__':
     
     if proj.args.cont:
         save_filename = FindTimestampedFile('saves', 'save.*.pickle').get_latest_file()
-        with open(save_filename, 'rb') as f:
-            sd = pickle.loads(f.read())
+        sd = pickle.loads(open(save_filename, 'rb').read())
         sim = Simulation.create_from_state_dict(proj.cfg.env, proj.args.demo, sd)
     else:
         sim = Simulation.create_new_instance(proj.cfg.env, proj.args.demo)

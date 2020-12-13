@@ -20,14 +20,17 @@ class ArgumentAndConfigParser(object):
         self._arg_dests.add(dest)
         self._argparser.add_argument(*args, **kwargs)
         
-    def parse_args(self, args=None, cfg_namespace=None):
+    def parse_args(self, args=None, cfg_namespace=None, allow_unknown=False):
         if cfg_namespace is None:
             cfg_namespace = Namespace()
         common_keys = cfg_namespace.__dict__.keys() & self._arg_dests
         assert len(common_keys) == 0, ''\
             'Provided config namespace conflicts with '\
             'the defined arguments {}'.format(common_keys)
-        self._argparser.parse_args(args, cfg_namespace)
+        if allow_unknown:
+            self._argparser.parse_known_args(args, cfg_namespace)
+        else:
+            self._argparser.parse_args(args, cfg_namespace)
         arg_namespace = argparse.Namespace()
         for arg_name in self._arg_dests:
             setattr(arg_namespace, arg_name, getattr(cfg_namespace, arg_name))

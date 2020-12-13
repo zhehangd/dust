@@ -2,7 +2,7 @@ from dust.utils import arg_and_cfg_parser
 
 class TestArgumentAndConfigParser(object):
   
-    def __init__(self):
+    def setup_method(self, method):
         parser = arg_and_cfg_parser.ArgumentAndConfigParser()
         parser.add_argument('--arg1')
         parser.add_argument('--arg2')
@@ -22,7 +22,7 @@ class TestArgumentAndConfigParser(object):
         self.parser = parser
 
     def test_simple_arg(self):
-        args, cfg = parser.parse_args(['--arg1', 'foo'])
+        args, cfg = self.parser.parse_args(['--arg1', 'foo'])
         assert args.arg1 == 'foo'
         assert args.arg2 == None
         assert args.arg3 == False
@@ -39,12 +39,29 @@ class TestArgumentAndConfigParser(object):
         cfg_namespace.cfg2 = 24
         
         raw_args = ["--arg1", "abc", '--arg3', '--cfg1', 'def']
-        args, cfg = parser.parse_args(raw_args, cfg_namespace=cfg_namespace)
+        args, cfg = self.parser.parse_args(raw_args, cfg_namespace=cfg_namespace)
         
-        assert args.arg1 == abc
+        assert args.arg1 == 'abc'
         assert args.arg2 == None
         assert args.arg3 == True
         assert cfg.foo == 123
         assert cfg.cfg1 == 'def'
         assert cfg.cfg2 == 24
         assert cfg.cfg3 == False
+
+    def test_partial_parse(self):
+        cfg_namespace = arg_and_cfg_parser.Namespace()
+        cfg_namespace.cfg7 = 'pi'
+        raw_args = ["--arg1", "abc", '--arg7', '9', '--arg8', '--cfg7', 'e']
+        args, cfg = self.parser.parse_args(
+            raw_args, cfg_namespace=cfg_namespace,
+            allow_unknown=True)
+        assert args.arg1 == 'abc'
+        assert not hasattr(args, 'arg7')
+        assert not hasattr(args, 'arg8')
+        assert cfg.cfg7 == 'pi'
+        
+        
+        
+        
+        

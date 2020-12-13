@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 
-from dust.core.ai_engine_dev import AIEngineDev, BrainDef, Terminal, Brain
+from .engine import Engine, BrainDef, Terminal, Brain
 
 def make_obs_data(o):
     obs = np.empty((), [('o', 'f4', len(o))])
@@ -44,7 +44,7 @@ def test_ai_engine():
     term_name = 'terminal_01'
     brain_def = BrainDef(5, 3, [])
     
-    engine = AIEngineDev.create_new_instance()
+    engine = Engine.create_new_instance()
     engine.add_brain(brain_name, brain_def)
     assert len(engine.brains) == 1
     
