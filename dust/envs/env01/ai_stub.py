@@ -14,6 +14,11 @@ BRAIN_NAME = 'brain01'
 TERM_NAME = 'term01'
 _EPOCH_LENGTH = 200
 
+_ARGPARSER = _dust.argparser()
+
+_ARGPARSER.add_argument('--freeze', action='store_true',
+    help='')
+
 class Env01Stub(EnvAIStub):
     
     def __init__(self, env, state_dict: dict = None):
@@ -35,8 +40,9 @@ class Env01Stub(EnvAIStub):
             engine.add_terminal(TERM_NAME, BRAIN_NAME)
         self.env = env
         self.engine = engine
-        self.freeze = False
-        if not freeze:
+        project = _dust.project()
+        self.freeze = project.args.freeze
+        if not self.freeze:
             self.progress = progress_log.ProgressLog()
         else:
             self.progress = None
@@ -49,12 +55,12 @@ class Env01Stub(EnvAIStub):
                 'epoch_num_rounds': self.epoch_num_rounds}
 
     @classmethod
-    def create_new_instance(cls, env_core, freeze) -> 'EnvAIStub':
-        return cls(env_core, freeze)
+    def create_new_instance(cls, env_core) -> 'EnvAIStub':
+        return cls(env_core)
     
     @classmethod
-    def create_from_state_dict(cls, env_core, freeze, state_dict) -> 'EnvAIStub':
-        return cls(env_core, freeze, state_dict)
+    def create_from_state_dict(cls, env_core, state_dict) -> 'EnvAIStub':
+        return cls(env_core, state_dict)
     
     def perceive_and_act(self) -> None:
         """ Perceives environment state and takes actions
