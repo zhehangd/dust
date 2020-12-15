@@ -8,13 +8,15 @@ from dust.core import progress_log
 
 from dust.ai_engines import prototype
 
+from dust import _dust
+
 BRAIN_NAME = 'brain01'
 TERM_NAME = 'term01'
 _EPOCH_LENGTH = 200
 
 class Env01Stub(EnvAIStub):
     
-    def __init__(self, env, freeze, state_dict: dict = None):
+    def __init__(self, env, state_dict: dict = None):
         if state_dict is not None:
             assert isinstance(state_dict, dict)
             self.curr_epoch_tick = state_dict['curr_epoch_tick']
@@ -33,7 +35,7 @@ class Env01Stub(EnvAIStub):
             engine.add_terminal(TERM_NAME, BRAIN_NAME)
         self.env = env
         self.engine = engine
-        self.freeze = freeze
+        self.freeze = False
         if not freeze:
             self.progress = progress_log.ProgressLog()
         else:

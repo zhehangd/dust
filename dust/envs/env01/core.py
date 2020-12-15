@@ -82,6 +82,8 @@ class Env01Core(EnvCore):
         
         if state_dict:
             auto_load_state_dict(self, state_dict)
+        else:
+            self._create_new_round()
     
     @classmethod
     def create_new_instance(cls) -> 'EnvCore':
@@ -90,9 +92,6 @@ class Env01Core(EnvCore):
     @classmethod
     def create_from_state_dict(cls, state_dict) -> 'EnvCore':
         return cls(state_dict)
-    
-    def new_simulation(self):
-        self._create_new_round()
     
     def _create_new_round(self):
         
