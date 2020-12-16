@@ -22,8 +22,7 @@ class Project(object):
     """
     
     def __init__(self, load_proj: bool, **kwargs):
-        self._timestamp = kwargs.pop('timestamp',
-            datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S'))
+        self._timestamp = kwargs.pop('timestamp', self._get_timestamp())
         self._proj_dir = kwargs.pop('proj_dir', os.getcwd())
         self._sess_name = kwargs.pop('sess_name', 'default')
         self._log_handlers = []
@@ -59,7 +58,8 @@ class Project(object):
         return self
     
     def __exit__(self, type, value, trace):
-        self.detach()
+        if _PROJECT == self:
+            self.detach()
         self.release()
     
     def release(self):
@@ -85,6 +85,14 @@ class Project(object):
         global _PROJECT
         assert _PROJECT == self
         _PROJECT = None
+        
+    def renew_timestamp(self, timestamp=None):
+        """ Uses the current time as the timestamp
+        """
+        self._timestamp = timestamp or self._get_timestamp()
+    
+    def _get_timestamp(self):
+        return datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S')
     
     @property
     def log_filename(self):
