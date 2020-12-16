@@ -30,7 +30,7 @@ if __name__ == '__main__':
     COLORS = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple',
             'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
 
-    proj = _dust.load_project('plot')
+    proj = _dust.load_project(sess_name='plot')
     proj.parse_args()
     proj.log_proj_info()
     

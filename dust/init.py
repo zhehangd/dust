@@ -10,7 +10,7 @@ _ARGPARSER.add_configuration('--env', default="env01",
 if __name__ == '__main__':
     
     try:
-        proj = _dust.create_project('init')
+        proj = _dust.create_project(sess_name='init')
         proj.parse_args()
         proj.log_proj_info()
         proj.save_project()

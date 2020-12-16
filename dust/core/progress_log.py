@@ -20,14 +20,12 @@ class ProgressLog(object):
         project time tag.
            
         """
-        if _dust.inside_project():
-            proj = _dust.project()
-            progress_filename = '{}/logs/progress.{}.txt'.format(
-                proj.proj_dir, proj.timestamp)
-            os.makedirs(os.path.dirname(progress_filename), exist_ok=True)
-            self._file = open(progress_filename, 'w')
-        else:
-            self._file = sys.stderr
+    
+        proj = _dust.project()
+        progress_filename = '{}/logs/progress.{}.txt'.format(
+            proj.proj_dir, proj.timestamp)
+        os.makedirs(os.path.dirname(progress_filename), exist_ok=True)
+        self._file = open(progress_filename, 'w')
         self._line_count = 0
         self._table = {}
     

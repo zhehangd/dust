@@ -144,7 +144,7 @@ if __name__ == '__main__':
         '--disp', action='store_true',
         help='Demo mode')
     
-    proj = _dust.load_project('train')
+    proj = _dust.load_project(sess_name='train')
     proj.parse_args(allow_unknown=True)
     proj.log_proj_info()
     

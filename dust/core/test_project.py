@@ -1,3 +1,4 @@
+import gc
 import os
 
 from dust.core import project
@@ -14,7 +15,6 @@ def test_create_temporary_project():
     check_project(proj)
     proj_dir = proj.proj_dir
     proj.release()
-    del proj
     assert not os.path.isdir(proj_dir), proj_dir
 
 def test_detach_global_project():
@@ -25,3 +25,6 @@ def test_detach_global_project():
     project.detach_global_project()
 
 
+def test_project_context():
+    with project.create_temporary_project() as proj:
+        pass

@@ -22,14 +22,11 @@ class Project(object):
     """
     
     def __init__(self, load_proj: bool, **kwargs):
-        global _PROJECT
-        assert _PROJECT is None, 'Project has been created'
-        _PROJECT = self
-        
-        self._timestamp = kwargs.get('timestamp',
+        self._timestamp = kwargs.pop('timestamp',
             datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S'))
-        self._proj_dir = kwargs.get('proj_dir', os.getcwd())
-        self._sess_name = kwargs.get('sess_name', 'default')
+        self._proj_dir = kwargs.pop('proj_dir', os.getcwd())
+        self._sess_name = kwargs.pop('sess_name', 'default')
+        self._log_handlers = []
         self._init_logger()
         
         proj_file = os.path.join(self.proj_dir, _PROJECT_FILE)
@@ -43,27 +40,51 @@ class Project(object):
             cfg.__dict__.update(proj_dict['cfg'])
         self.cfg = cfg
         self.args = args
-        self._global = True
+        
+        self._temp_dir = kwargs.pop('temp_dir', None)
+        
+        is_local = kwargs.pop('local', False)
+        if is_local == False:
+            global _PROJECT
+            assert _PROJECT is None, 'A global project has been registered.'
+            _PROJECT = self
+        
+        assert len(kwargs) == 0, \
+            'Unknown arguments {}'.format(', '.join(kwargs.keys()))
+    
+    def __del__(self):
+        self.release()
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, type, value, trace):
+        self.detach()
+        self.release()
     
     def release(self):
-        """ Detaches the project from the global project position
+        """ Releases all external resources the project holds
         
-        This removes the project from the global project variable,
-        and reset the logger it maintains, making the project a
-        normal object without global effect.
+        The logger handlers the project added are removed. If a temporary
+        directory is given, it gets cleaned up. 
         
-        The only scenario this method should be called is when you
-        want to switch projects for some special reasons (like testing).
-        
-        You may call this method only when this project is the global one.
-        
+        One should not use the project again after this method is called.
+        This method is called automatically when the object gets destructed.
         """
-        assert self._global
+        logger = logging.getLogger(None)
+        for handler in self._log_handlers:
+            logger.removeHandler(handler)
+        self._log_handlers = []
+        if self._temp_dir:
+            self._temp_dir.cleanup()
+            self._temp_dir = None
+        
+    def detach(self):
+        """ Detaches the project from the global project position
+        """
         global _PROJECT
         assert _PROJECT == self
         _PROJECT = None
-        self._reset_logger()
-        self._global = False
     
     @property
     def log_filename(self):
@@ -101,9 +122,8 @@ class Project(object):
             toml.dump(proj_dict, f)
     
     def _init_logger(self):
-        self._reset_logger()
         logger = logging.getLogger(None)
-        logger.setLevel(logging.INFO)
+        logger.setLevel(logging.INFO) # TODO attach to handlers?
         
         # e.g. 2020-10-08 22:26:03,509 INFO
         formatter = logging.Formatter('%(asctime)s %(levelname)-7s %(message)s')
@@ -112,7 +132,8 @@ class Project(object):
         handler = logging.StreamHandler(sys.stderr)
         handler.setFormatter(formatter)
         logger.addHandler(handler)
-
+        self._log_handlers.append(handler)
+        
         # Log to file
         log_basename = 'log.{}.{}.log'.format(self.sess_name, self.timestamp)
         log_filename = os.path.join(self.proj_dir, 'logs', log_basename)
@@ -122,31 +143,15 @@ class Project(object):
         handler = logging.FileHandler(log_filename)
         handler.setFormatter(formatter)
         logger.addHandler(handler)
-
-    def _reset_logger(self):
-        assert logging
-        logger = logging.getLogger(None)
-        for handler in logger.handlers[:]:
-            logger.removeHandler(handler)
-        for filter in logger.filters[:]:
-            logger.removeFilter(filter)
-
-def inside_project():
-    return isinstance(_PROJECT, Project)
+        self._log_handlers.append(handler)
+        #for filter in logger.filters[:]:
+        #    logger.removeFilter(filter)
 
 def project():
     """ Returns the current project
     One should call this after a project is created or loaded
     """
     assert isinstance(_PROJECT, Project), 'You haven\'t loaded a project.'
-    return _PROJECT
-
-def _create_project(sess_name, proj_dir, init) -> Project:
-    """ Inits and enters a project
-    """
-    
-    _PROJECT = Project(sess_name=sess_name, proj_dir=proj_dir,
-                       timestamp=timestamp, init=init)
     return _PROJECT
 
 def create_project(**kwargs) -> Project:
@@ -156,9 +161,12 @@ def load_project(**kwargs) -> Project:
     return Project(True, **kwargs)
 
 def create_temporary_project(**kwargs) -> Project:
+    assert 'proj_dir' not in kwargs
+    assert 'temp_dir' not in kwargs
     temp_dir_obj = tempfile.TemporaryDirectory()
     proj_dir = temp_dir_obj.name
     kwargs['proj_dir'] = proj_dir
+    kwargs['temp_dir'] = temp_dir_obj
     proj = Project(False, **kwargs)
     assert proj.proj_dir == proj_dir, '{} vs. {}'.format(proj.proj_dir, proj_dir)
     # Upon the destruction of the project, this object is also destructed
@@ -166,12 +174,6 @@ def create_temporary_project(**kwargs) -> Project:
     proj._temp_dir_obj = temp_dir_obj 
     return proj
 
-def close_project():
-    global _PROJECT
-    assert isinstance(_PROJECT, Project)
-    proj, _PROJECT = _PROJECT, None
-    del proj
-
 def detach_global_project():
     if _PROJECT:
-        _PROJECT.release()
+        _PROJECT.detach()
