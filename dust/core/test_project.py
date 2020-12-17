@@ -24,7 +24,9 @@ def test_detach_global_project():
     proj = project.create_temporary_project()
     project.detach_global_project()
 
-
 def test_project_context():
     with project.create_temporary_project() as proj:
         pass
+
+#def test_log_filename():
+  
