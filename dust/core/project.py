@@ -10,9 +10,6 @@ import toml
 import dust.core.init
 from dust.utils.arg_and_cfg_parser import Namespace
 
-
-_PROJECT = None
-
 _PROJECT_FILE = 'project.toml'
 
 # TODO: Maybe global project is a bad idea. Just let all objects take a
@@ -83,12 +80,6 @@ class Project(object):
         if self._temp_dir is not None:
             assert isinstance(self._temp_dir, tempfile.TemporaryDirectory)
         
-        is_local = kwargs.pop('local', False)
-        if is_local == False:
-            global _PROJECT
-            assert _PROJECT is None, 'A global project has been registered.'
-            _PROJECT = self
-        
         assert len(kwargs) == 0, \
             'Unknown arguments {}'.format(', '.join(kwargs.keys()))
     
@@ -99,8 +90,6 @@ class Project(object):
         return self
     
     def __exit__(self, type, value, trace):
-        if _PROJECT == self:
-            self.detach()
         self.release()
     
     def release(self):
@@ -119,14 +108,7 @@ class Project(object):
         if self._temp_dir:
             self._temp_dir.cleanup()
             self._temp_dir = None
-        
-    def detach(self):
-        """ Detaches the project from the global project position
-        """
-        global _PROJECT
-        assert _PROJECT == self
-        _PROJECT = None
-        
+    
     def renew_timestamp(self, timestamp=None):
         """ Update the session timestamp
         
@@ -234,13 +216,6 @@ class Project(object):
     def _get_timestamp(self):
         return datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S')
 
-def project():
-    """ Returns the current project
-    One should call this after a project is created or loaded
-    """
-    assert isinstance(_PROJECT, Project), 'You haven\'t loaded a project.'
-    return _PROJECT
-
 def create_project(**kwargs) -> Project:
     return Project(False, **kwargs)
 
@@ -261,6 +236,3 @@ def create_temporary_project(**kwargs) -> Project:
     proj._temp_dir_obj = temp_dir_obj 
     return proj
 
-def detach_global_project():
-    if _PROJECT:
-        _PROJECT.detach()

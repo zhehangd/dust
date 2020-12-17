@@ -43,7 +43,7 @@ class Env01Stub(EnvAIStub):
         self.engine = engine
         self.freeze = self._proj.args.freeze
         if not self.freeze:
-            self.progress = progress_log.ProgressLog()
+            self.progress = progress_log.ProgressLog(project)
         else:
             self.progress = None
         

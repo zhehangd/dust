@@ -58,7 +58,7 @@ class SaveManager(object):
     """
     
     def __init__(self, **kwargs):
-        proj = kwargs.pop('project', None) or _dust.project()
+        proj = kwargs.pop('project')
         self._proj = proj
         self._saves = []
         self._save_dir = kwargs.pop('save_dir', os.path.join(proj.proj_dir, 'saves'))

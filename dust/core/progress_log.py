@@ -13,17 +13,15 @@ class ProgressLog(object):
     
     """
     
-    def __init__(self):
+    def __init__(self, project):
         """ Initializes the progress log
         
         Upon construction a progress log file is created, named with the 
         project time tag.
            
         """
-    
-        proj = _dust.project()
         progress_filename = '{}/logs/progress.{}.txt'.format(
-            proj.proj_dir, proj.timestamp)
+            project.proj_dir, project.timestamp)
         os.makedirs(os.path.dirname(progress_filename), exist_ok=True)
         self._file = open(progress_filename, 'w')
         self._line_count = 0
