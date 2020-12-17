@@ -4,26 +4,10 @@ dust.core package
 Submodules
 ----------
 
-dust.core.ai\_engine module
----------------------------
-
-.. automodule:: dust.core.ai_engine
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 dust.core.env module
 --------------------
 
 .. automodule:: dust.core.env
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-dust.core.frames module
------------------------
-
-.. automodule:: dust.core.frames
    :members:
    :undoc-members:
    :show-inheritance:
@@ -48,6 +32,30 @@ dust.core.project module
 ------------------------
 
 .. automodule:: dust.core.project
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+dust.core.save\_mgr module
+--------------------------
+
+.. automodule:: dust.core.save_mgr
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+dust.core.test\_project module
+------------------------------
+
+.. automodule:: dust.core.test_project
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+dust.core.test\_save\_mgr module
+--------------------------------
+
+.. automodule:: dust.core.test_save_mgr
    :members:
    :undoc-members:
    :show-inheritance:

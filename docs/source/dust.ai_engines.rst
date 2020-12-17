@@ -7,7 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   dust.ai_engines.Prototype
+   dust.ai_engines.prototype
 
 Module contents
 ---------------

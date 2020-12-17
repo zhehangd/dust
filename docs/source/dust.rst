@@ -15,10 +15,10 @@ Subpackages
 Submodules
 ----------
 
-dust.demo module
-----------------
+dust.dev module
+---------------
 
-.. automodule:: dust.demo
+.. automodule:: dust.dev
    :members:
    :undoc-members:
    :show-inheritance:
@@ -39,18 +39,10 @@ dust.plot module
    :undoc-members:
    :show-inheritance:
 
-dust.test\_rl module
---------------------
-
-.. automodule:: dust.test_rl
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-dust.train module
+dust.start module
 -----------------
 
-.. automodule:: dust.train
+.. automodule:: dust.start
    :members:
    :undoc-members:
    :show-inheritance:
