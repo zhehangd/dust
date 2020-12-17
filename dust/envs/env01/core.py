@@ -42,7 +42,7 @@ class Env01Core(EnvCore):
         'food_coords', 'move_count', 'num_round_collisions',
         'ticks_per_round', 'next_action']
     
-    def __init__(self, state_dict: dict = None):
+    def __init__(self, project, state_dict: dict = None):
         super().__init__()
         
         # auto_load_state_dict requires every attribute presented in the
@@ -51,7 +51,7 @@ class Env01Core(EnvCore):
         # --------------- Attributes for Read-only -----------
         # They represent the state of the environment for users to check. 
         # Do NOT modify them.
-        
+        self._proj = project
         self._curr_tick = 0
         self.curr_round_tick = 0
         self.curr_round = 0
@@ -86,12 +86,12 @@ class Env01Core(EnvCore):
             self._create_new_round()
     
     @classmethod
-    def create_new_instance(cls) -> 'EnvCore':
-        return cls()
+    def create_new_instance(cls, project) -> 'EnvCore':
+        return cls(project)
     
     @classmethod
-    def create_from_state_dict(cls, state_dict) -> 'EnvCore':
-        return cls(state_dict)
+    def create_from_state_dict(cls, project, state_dict) -> 'EnvCore':
+        return cls(project, state_dict)
     
     def _create_new_round(self):
         

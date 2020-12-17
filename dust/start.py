@@ -15,6 +15,23 @@ from dust.utils.utils import FindTimestampedFile
 from dust.utils.state_dict import show_state_dict_content
 from dust.core.save_mgr import SaveManager
 
+_ARGPARSER = _dust.argparser()
+
+_ARGPARSER.add_configuration('--fps', type=float, default=30.0,
+    help='Frame per second. Effective only if display mode is on.')
+
+_ARGPARSER.add_argument('--timing_ticks', type=int, default=16000,
+    help='Number of ticks between each timing')
+
+_ARGPARSER.add_argument('--target_tick', type=int, default=50000,
+    help='Train until reaching the given tick')
+
+_ARGPARSER.add_argument('--restart', action='store_true',
+    help='Continue training')
+
+_ARGPARSER.add_argument('--disp', action='store_true',
+    help='Demo mode')
+
 class MainLoopTimer(object):
     
     def __init__(self, start_epoch):
@@ -51,62 +68,72 @@ class Simulation(object):
         self.timer = MainLoopTimer(0)
     
     @classmethod
-    def create_new_instance(cls, proj, saver, env_core_cls, ai_module_cls, disp_module_cls):
-        env_core = env_core_cls.create_new_instance()
-        ai_module = ai_module_cls.create_new_instance(env_core)
+    def create_new_instance(cls, **kwargs):
+        proj = kwargs['project']
+        saver = kwargs['saver']
+        env_core_cls = kwargs['env_core_cls']
+        ai_module_cls = kwargs['ai_module_cls']
+        disp_module_cls = kwargs['disp_module_cls']
+        env_core = env_core_cls.create_new_instance(proj)
+        ai_module = ai_module_cls.create_new_instance(proj, env_core)
         if disp_module_cls:
-            disp_module = create_new_instance(env_core, ai_module)
+            disp_module = create_new_instance(proj, env_core, ai_module)
             disp_module.init()
         else:
             disp_module = None
         return cls(proj, saver, env_core, ai_module, disp_module)
     
     @classmethod
-    def create_from_state_dict(cls, proj, saver, env_core_cls, ai_module_cls, disp_module_cls, sd):
-        env_core = env_core_cls.create_from_state_dict(sd['env_core'])
-        ai_module = ai_module_cls.create_from_state_dict(env_core, state_dict=sd['env_ai_module'])
+    def create_from_state_dict(cls, **kwargs):
+        proj = kwargs['project']
+        saver = kwargs['saver']
+        env_core_cls = kwargs['env_core_cls']
+        ai_module_cls = kwargs['ai_module_cls']
+        disp_module_cls = kwargs['disp_module_cls']
+        state_dict = kwargs['state_dict']
+        env_core = env_core_cls.create_from_state_dict(
+            proj, state_dict['env_core'])
+        ai_module = ai_module_cls.create_from_state_dict(
+            proj, env_core, state_dict=state_dict['env_ai_module'])
         if disp_module_cls:
-            disp_module = disp_module_cls.create_new_instance(env_core, ai_module)
+            disp_module = disp_module_cls.create_new_instance(proj, env_core, ai_module)
             disp_module.init()
         else:
             disp_module = None
         return cls(proj, saver, env_core, ai_module, disp_module)
     
     def update(self):
-        timer = self.timer
-        save = self.saver
-        proj = _dust.project()
-        with timer.section('env-next-tick'):
+        with self.timer.section('env-next-tick'):
             self.env_core.next_tick()
         
         # Agents observe the environment and take action
-        with timer.section('ai-act'):
+        with self.timer.section('ai-act'):
             self.ai_module.perceive_and_act()
         
         # Environment evolves
-        with timer.section('env-evolve'):
+        with self.timer.section('env-evolve'):
             self.env_core.evolve()
         
         # Agents get the feedback from the environment
         # and update themselves
-        with timer.section('ai-update'):
+        with self.timer.section('ai-update'):
             self.ai_module.update()
         
         # Environment update its data and move to the
         # state of the next tick
-        with timer.section('env-update'):
+        with self.timer.section('env-update'):
             self.env_core.update()
         
-        timer.finish_iteration()
-        if timer.time_count >= proj.args.timing_ticks:
-            logging.info(timer.generate_report_and_reset())
+        self.timer.finish_iteration()
+        if self.timer.time_count >= self.proj.args.timing_ticks:
+            logging.info(self.timer.generate_report_and_reset())
         
         if self.saver.next_save_tick() == self.env_core.curr_tick:
             self.save()
 
         if self.disp_module:
             self.disp_module.render()
-            time.sleep(0.03)
+            time.sleep(1. / self.proj.cfg.fps)
     
     def save(self):
         self.saver.save(self.env_core.curr_tick, self.state_dict())
@@ -120,24 +147,6 @@ class Simulation(object):
     
 if __name__ == '__main__':
     
-    _argparser = _dust.argparser()
-
-    _argparser.add_argument(
-        '--timing_ticks', type=int, default=16000,
-        help='Number of ticks between each timing')
-    
-    _argparser.add_argument(
-        '--target_tick', type=int, default=50000,
-        help='Train until reaching the given tick')
-    
-    _argparser.add_argument(
-        '--restart', action='store_true',
-        help='Continue training')
-    
-    _argparser.add_argument(
-        '--disp', action='store_true',
-        help='Demo mode')
-    
     proj = _dust.load_project(sess_name='train')
     proj.parse_args(allow_unknown=True)
     proj.log_proj_info()
@@ -145,14 +154,19 @@ if __name__ == '__main__':
     _dust.register_all_envs()
     
     assert proj.cfg.env == 'env01'
+    
+    sim_kwargs = {}
+    sim_kwargs['project'] = proj
+    
     env_record = _dust.find_env(proj.cfg.env)
-    env_core_class = env_record.import_core()
-    env_ai_module_class = env_record.import_ai_module()
-    env_disp_module_class = env_record.import_disp_module() if proj.args.disp else None
+    sim_kwargs['env_core_cls'] = env_record.import_core()
+    sim_kwargs['ai_module_cls'] = env_record.import_ai_module()
+    sim_kwargs['disp_module_cls'] = env_record.import_disp_module() if proj.args.disp else None
     
     proj.parse_args() # Parse args again after env modules register their stuff
     
     saver = SaveManager(project=proj)
+    sim_kwargs['saver'] = saver
     
     state_dict = None
     if not proj.args.restart:
@@ -165,11 +179,10 @@ if __name__ == '__main__':
         proj.log.info('Restart a new simulation')
     
     if state_dict:
-        sim = Simulation.create_from_state_dict(
-            proj, saver, env_core_class, env_ai_module_class, env_disp_module_class, state_dict)
+        sim_kwargs['state_dict'] = state_dict
+        sim = Simulation.create_from_state_dict(**sim_kwargs)
     else:
-        sim = Simulation.create_new_instance(
-            proj, saver, env_core_class, env_ai_module_class, env_disp_module_class)
+        sim = Simulation.create_new_instance(**sim_kwargs)
     
     logging.info('Starting training...')
     

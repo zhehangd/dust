@@ -11,11 +11,11 @@ class _EnvComponent(object):
         raise NotImplementedError()
     
     @classmethod
-    def create_new_instance(cls) -> '_EnvComponent':
+    def create_new_instance(cls, project) -> '_EnvComponent':
         raise NotImplementedError()
     
     @classmethod
-    def create_from_state_dict(cls, state_dict) -> '_EnvComponent':
+    def create_from_state_dict(cls, project, state_dict) -> '_EnvComponent':
         raise NotImplementedError()
 
 class EnvCore(_EnvComponent):
@@ -35,11 +35,11 @@ class EnvCore(_EnvComponent):
     """
     
     @classmethod
-    def create_new_instance(cls) -> 'EnvCore':
+    def create_new_instance(cls, project) -> 'EnvCore':
         raise NotImplementedError()
     
     @classmethod
-    def create_from_state_dict(cls, state_dict) -> 'EnvCore':
+    def create_from_state_dict(cls, project, state_dict) -> 'EnvCore':
         raise NotImplementedError()
     
     def new_simulation(self) -> None:
@@ -72,11 +72,11 @@ class EnvAIStub(_EnvComponent):
     """
     
     @classmethod
-    def create_new_instance(cls, env_core) -> 'EnvAIStub':
+    def create_new_instance(cls, project, env_core) -> 'EnvAIStub':
         raise NotImplementedError()
     
     @classmethod
-    def create_from_state_dict(cls, env_core, state_dict) -> 'EnvAIStub':
+    def create_from_state_dict(cls, project, env_core, state_dict) -> 'EnvAIStub':
         raise NotImplementedError()
     
     def perceive_and_act(self) -> None:
@@ -107,11 +107,11 @@ class EnvDisplay(_EnvComponent):
     """
     
     @classmethod
-    def create_new_instance(cls, env_core, ai_stub) -> 'EnvDisplay':
+    def create_new_instance(cls, project, env_core, ai_stub) -> 'EnvDisplay':
         raise NotImplementedError()
     
     @classmethod
-    def create_from_state_dict(cls, env_core, ai_stub, state_dict) -> 'EnvDisplay':
+    def create_from_state_dict(cls, project, env_core, ai_stub, state_dict) -> 'EnvDisplay':
         raise NotImplementedError()
     
     def init(self):

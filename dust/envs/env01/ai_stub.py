@@ -21,7 +21,8 @@ _ARGPARSER.add_argument('--freeze', action='store_true',
 
 class Env01Stub(EnvAIStub):
     
-    def __init__(self, env, state_dict: dict = None):
+    def __init__(self, project, env, state_dict: dict = None):
+        self._proj = project
         if state_dict is not None:
             assert isinstance(state_dict, dict)
             self.curr_epoch_tick = state_dict['curr_epoch_tick']
@@ -40,8 +41,7 @@ class Env01Stub(EnvAIStub):
             engine.add_terminal(TERM_NAME, BRAIN_NAME)
         self.env = env
         self.engine = engine
-        project = _dust.project()
-        self.freeze = project.args.freeze
+        self.freeze = self._proj.args.freeze
         if not self.freeze:
             self.progress = progress_log.ProgressLog()
         else:
@@ -55,12 +55,12 @@ class Env01Stub(EnvAIStub):
                 'epoch_num_rounds': self.epoch_num_rounds}
 
     @classmethod
-    def create_new_instance(cls, env_core) -> 'EnvAIStub':
-        return cls(env_core)
+    def create_new_instance(cls, project, env_core) -> 'EnvAIStub':
+        return cls(project, env_core)
     
     @classmethod
-    def create_from_state_dict(cls, env_core, state_dict) -> 'EnvAIStub':
-        return cls(env_core, state_dict)
+    def create_from_state_dict(cls, project, env_core, state_dict) -> 'EnvAIStub':
+        return cls(project, env_core, state_dict)
     
     def perceive_and_act(self) -> None:
         """ Perceives environment state and takes actions
@@ -100,7 +100,8 @@ class Env01Stub(EnvAIStub):
             
             if end_of_epoch:
                 avg_round_reward = self.epoch_reward / self.epoch_num_rounds
-                logging.info('EOE epoch: {} score: {}'.format(self.curr_epoch, avg_round_reward))
+                self._proj.log.info('EOE epoch: {} score: {}'.format(
+                    self.curr_epoch, avg_round_reward))
                 
                 fields = self.engine.flush_experiences()[BRAIN_NAME]
                 assert self.progress
