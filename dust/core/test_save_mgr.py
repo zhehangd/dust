@@ -67,3 +67,57 @@ def test_find_saves():
         assert len(save_list) == len(tick_list)
         assert timestamp3 in save_list[-1]
         assert str(tick_list[-1]) in save_list[-1]
+
+def test_save_cleanup():
+    with _dust.create_temporary_project() as proj:
+        proj.parse_args()
+        save_kwargs = dict(
+            project=proj, minor_save_interval=10, major_save_interval=35)
+        saver = save_mgr.SaveManager(**save_kwargs)
+        def test_save(save_tick, num_after):
+            name = saver.save(save_tick, {})
+            save_list = saver.get_save_list()
+            assert len(save_list) == num_after
+            assert save_list[-1] == name
+        test_save(10, 1)
+        test_save(19, 2)
+        test_save(21, 3)
+        test_save(31, 4)
+        test_save(55, 2)
+        test_save(64, 3)
+        test_save(100, 3)
+        test_save(105, 4)
+        test_save(106, 5)
+        test_save(110, 6)
+        test_save(300, 5)
+        test_save(600, 6)
+        
+def test_save_cleanup2():
+    with _dust.create_temporary_project() as proj:
+        proj.parse_args()
+        save_kwargs = dict(
+            project=proj, minor_save_interval=10, major_save_interval=35)
+        saver = save_mgr.SaveManager(**save_kwargs)
+        def test_save(save_tick, num_after):
+            name = saver.save(save_tick, {})
+            save_list = saver.get_save_list()
+            assert len(save_list) == num_after
+            assert save_list[-1] == name
+        test_save(99, 1)
+        test_save(100, 2)
+        test_save(106, 2)
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
