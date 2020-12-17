@@ -13,7 +13,7 @@ from dust import _dust
 from dust.utils import utils
 from dust.utils.utils import FindTimestampedFile
 from dust.utils.state_dict import show_state_dict_content
-from dust.utils.dynamic_save import DynamicSave
+from dust.core.save_mgr import SaveManager
 
 class MainLoopTimer(object):
     
@@ -42,15 +42,16 @@ class MainLoopTimer(object):
 
 class Simulation(object):
     
-    def __init__(self, env_core, ai_module, disp_module):
+    def __init__(self, proj, saver, env_core, ai_module, disp_module):
+        self.proj = proj
         self.env_core = env_core
         self.ai_module = ai_module
         self.disp_module = disp_module
-        self.save = DynamicSave(self.env_core.curr_tick, 1000, 10)
+        self.saver = saver
         self.timer = MainLoopTimer(0)
     
     @classmethod
-    def create_new_instance(cls, env_core_cls, ai_module_cls, disp_module_cls):
+    def create_new_instance(cls, proj, saver, env_core_cls, ai_module_cls, disp_module_cls):
         env_core = env_core_cls.create_new_instance()
         ai_module = ai_module_cls.create_new_instance(env_core)
         if disp_module_cls:
@@ -58,10 +59,10 @@ class Simulation(object):
             disp_module.init()
         else:
             disp_module = None
-        return cls(env_core, ai_module, disp_module)
+        return cls(proj, saver, env_core, ai_module, disp_module)
     
     @classmethod
-    def create_from_state_dict(cls, env_core_cls, ai_module_cls, disp_module_cls, sd):
+    def create_from_state_dict(cls, proj, saver, env_core_cls, ai_module_cls, disp_module_cls, sd):
         env_core = env_core_cls.create_from_state_dict(sd['env_core'])
         ai_module = ai_module_cls.create_from_state_dict(env_core, state_dict=sd['env_ai_module'])
         if disp_module_cls:
@@ -69,11 +70,11 @@ class Simulation(object):
             disp_module.init()
         else:
             disp_module = None
-        return cls(env_core, ai_module, disp_module)
+        return cls(proj, saver, env_core, ai_module, disp_module)
     
     def update(self):
         timer = self.timer
-        save = self.save
+        save = self.saver
         proj = _dust.project()
         with timer.section('env-next-tick'):
             self.env_core.next_tick()
@@ -100,29 +101,22 @@ class Simulation(object):
         if timer.time_count >= proj.args.timing_ticks:
             logging.info(timer.generate_report_and_reset())
         
-        if save.next_update_tick == self.env_core.curr_tick:
-            save_filename = self._save_state()
-            save.add_save(save_filename, self.env_core.curr_tick)
+        if self.saver.next_save_tick() == self.env_core.curr_tick:
+            self.save()
 
         if self.disp_module:
             self.disp_module.render()
             time.sleep(0.03)
-        
+    
+    def save(self):
+        self.saver.save(self.env_core.curr_tick, self.state_dict())
+    
     def state_dict(self) -> dict:
         sd = {}
         sd['version'] = 'dev'
         sd['env_core'] = self.env_core.state_dict()
         sd['env_ai_module'] = self.ai_module.state_dict()
         return sd
-    
-    def _save_state(self) -> str:
-        save_filename = 'saves/save.{}.pickle'.format(
-            datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S'))
-        logging.info('Saving to {}'.format(save_filename))
-        os.makedirs(os.path.dirname(save_filename), exist_ok=True)
-        with open(save_filename, 'wb') as f:
-            pickle.dump(self.state_dict(), f)
-        return save_filename
     
 if __name__ == '__main__':
     
@@ -158,18 +152,31 @@ if __name__ == '__main__':
     
     proj.parse_args() # Parse args again after env modules register their stuff
     
-    if proj.args.restart:
-        sim = Simulation.create_new_instance(env_core_class, env_ai_module_class, env_disp_module_class)
+    saver = SaveManager(project=proj)
+    
+    state_dict = None
+    if not proj.args.restart:
+        num_saves = saver.scan_saves()
+        if num_saves > 0:
+            state_dict = saver.load_latest_save()
+        else:
+            proj.log.info('Found no existing save, start a new simulation')
     else:
-        save_filename = FindTimestampedFile('saves', 'save.*.pickle').get_latest_file()
-        sd = pickle.loads(open(save_filename, 'rb').read())
-        sim = Simulation.create_from_state_dict(env_core_class, env_ai_module_class, env_disp_module_class, sd)
+        proj.log.info('Restart a new simulation')
+    
+    if state_dict:
+        sim = Simulation.create_from_state_dict(
+            proj, saver, env_core_class, env_ai_module_class, env_disp_module_class, state_dict)
+    else:
+        sim = Simulation.create_new_instance(
+            proj, saver, env_core_class, env_ai_module_class, env_disp_module_class)
     
     logging.info('Starting training...')
     
     try:
         while sim.env_core.curr_tick < proj.args.target_tick:
             sim.update()
+        sim.save()
     except KeyboardInterrupt:
         logging.info('Interrupted by user')
     
